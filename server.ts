@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
+import crypto from "crypto";
 import { 
   Project, 
   GeminiKey, 
@@ -14,12 +15,43 @@ import {
   LogEntry,
   TaskType
 } from "./src/types.js";
+import multer from "multer";
+import {
+  getSupabase,
+  initializeStorageBucket,
+  dbFetchAllProjects,
+  dbFetchProjectDetail,
+  dbCreateProject,
+  dbUpdateProject,
+  dbDeleteProject,
+  dbUploadReferenceImage,
+  SQL_SCHEMA_SETUP
+} from "./supabaseService.js";
 
 // Helper for generating unique IDs
 const generateId = () => Math.random().toString(36).substring(2, 11);
 
 // Initialize Data Store (In-Memory with some seed values)
 let projects: Project[] = [];
+let supabasePrehydrateError: string | null = null;
+let supabaseTablesExist = false;
+
+// Hydrate initial cache from Supabase on startup if active
+if (getSupabase()) {
+  console.log("🌊 Supabase is active. Hydrating in-memory cache on startup...");
+  initializeStorageBucket().then(async () => {
+    try {
+      const active = await dbFetchAllProjects(false);
+      const archived = await dbFetchAllProjects(true);
+      projects = [...active, ...archived];
+      supabaseTablesExist = true;
+      console.log(`📦 Successfully pre-hydrated ${projects.length} projects from Supabase database.`);
+    } catch (err: any) {
+      supabasePrehydrateError = err?.message || JSON.stringify(err);
+      console.warn("🚨 Notice: Failed to pre-hydrate cache from Supabase (tables might not exist yet):", err.message);
+    }
+  });
+}
 let geminiKeys: GeminiKey[] = [
   { id: "gkey-1", name: "Gemini Pro Key (Primary)", apiKey: "AIzaSySeedKey1_GeminiProPrivatePool", status: "Active", usageCount: 42, errorCount: 1 },
   { id: "gkey-2", name: "Gemini Flash Key (Backup)", apiKey: "AIzaSySeedKey2_GeminiFlashBackupPool", status: "Active", usageCount: 120, errorCount: 5 },
@@ -1007,6 +1039,11 @@ Nhờ ưu điểm ${project.productInfo ? project.productInfo.substring(0, 100) 
       }
 
       project.updatedAt = new Date().toISOString();
+      if (getSupabase()) {
+        dbUpdateProject(project.id, project).catch(err => {
+          console.error("🚨 Failed to save background task updates to Supabase:", err.message);
+        });
+      }
     }
   }, 400); // Simulated delay ticks
 }, 1000);
@@ -1017,9 +1054,66 @@ Nhờ ưu điểm ${project.productInfo ? project.productInfo.substring(0, 100) 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 
+// Multer and Upload Endpoint Configuration
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB Limit
+});
+
+app.post("/api/projects/upload", upload.single("image"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file provided" });
+  }
+  try {
+    const file = req.file;
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}${path.extname(file.originalname)}`;
+    const mimeType = file.mimetype;
+
+    const supabase = getSupabase();
+    if (supabase) {
+      const publicUrl = await dbUploadReferenceImage(fileName, file.buffer, mimeType);
+      return res.json({ url: publicUrl });
+    }
+
+    // Fallback: Convert to Base64 data URI
+    const base64 = `data:${mimeType};base64,${file.buffer.toString("base64")}`;
+    return res.json({ url: base64 });
+  } catch (err: any) {
+    console.error("Upload endpoint error:", err.message);
+    res.status(500).json({ error: "Internal Server Error during upload" });
+  }
+});
+
 // API: Get App Status
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
+});
+
+// API: Get Supabase connection status and SQL schema script
+app.get("/api/supabase-status", async (req, res) => {
+  const isConfigured = !!getSupabase();
+  let tablesOk = supabaseTablesExist;
+  let errMsg = supabasePrehydrateError;
+
+  if (isConfigured && !tablesOk) {
+    try {
+      await dbFetchAllProjects(false);
+      tablesOk = true;
+      supabaseTablesExist = true;
+      supabasePrehydrateError = null;
+      errMsg = null;
+    } catch (err: any) {
+      tablesOk = false;
+      errMsg = err?.message || "Table 'projects_supabase' not found in public schema.";
+    }
+  }
+
+  res.json({
+    configured: isConfigured,
+    tablesOk,
+    error: errMsg,
+    sqlSetupCode: SQL_SCHEMA_SETUP
+  });
 });
 
 // API: Get Constants
@@ -1031,23 +1125,60 @@ app.get("/api/constants", (req, res) => {
 });
 
 // API: Get Projects
-app.get("/api/projects", (req, res) => {
+app.get("/api/projects", async (req, res) => {
   const query = req.query.archived;
-  const filtered = query === 'true' 
+  const isArchived = query === 'true';
+
+  if (getSupabase()) {
+    try {
+      const spProjects = await dbFetchAllProjects(isArchived);
+      // Synchronize local cache with Supabase to make sure they match
+      spProjects.forEach(sp => {
+        const idx = projects.findIndex(p => p.id === sp.id);
+        if (idx !== -1) {
+          projects[idx] = sp;
+        } else {
+          projects.push(sp);
+        }
+      });
+      return res.json(spProjects);
+    } catch (err: any) {
+      console.error("Supabase load projects failed, falling back to local memory cache:", err.message);
+    }
+  }
+
+  const filtered = isArchived 
     ? projects.filter(p => p.isArchived)
     : projects.filter(p => !p.isArchived);
   res.json(filtered);
 });
 
 // API: Get Project Detail
-app.get("/api/projects/:id", (req, res) => {
+app.get("/api/projects/:id", async (req, res) => {
+  if (getSupabase()) {
+    try {
+      const spProject = await dbFetchProjectDetail(req.params.id);
+      if (spProject) {
+        const idx = projects.findIndex(p => p.id === spProject.id);
+        if (idx !== -1) {
+          projects[idx] = spProject;
+        } else {
+          projects.push(spProject);
+        }
+        return res.json(spProject);
+      }
+    } catch (err: any) {
+      console.error(`Supabase load project detail ${req.params.id} failed:`, err.message);
+    }
+  }
+
   const project = projects.find(p => p.id === req.params.id);
   if (!project) return res.status(404).json({ error: "Không tìm thấy dự án" });
   res.json(project);
 });
 
 // API: Create Project
-app.post("/api/projects", (req, res) => {
+app.post("/api/projects", async (req, res) => {
   const { 
     name, industryId, contentType, productName, productCategory, 
     productInfo, aiLanguage, goal, tone, style, aiExpertRole, cta, targetWordCount, imageReferences 
@@ -1057,8 +1188,11 @@ app.post("/api/projects", (req, res) => {
     return res.status(400).json({ error: "Vui lòng nhập tên dự án và tên sản phẩm" });
   }
 
+  // Generate a cryptographically secure UUID for the project
+  const projectId = crypto.randomUUID();
+
   const newProject: Project = {
-    id: generateId(),
+    id: projectId,
     name,
     industryId: industryId || "ind-1",
     contentType: contentType || "TikTok Promo",
@@ -1082,23 +1216,44 @@ app.post("/api/projects", (req, res) => {
     isArchived: false
   };
 
+  if (getSupabase()) {
+    try {
+      const saved = await dbCreateProject(newProject);
+      if (saved) {
+        projects.unshift(saved);
+        return res.status(201).json(saved);
+      }
+    } catch (err: any) {
+      console.error("Supabase create project failed, falling back to local memory:", err.message);
+    }
+  }
+
   projects.unshift(newProject);
   res.status(201).json(newProject);
 });
 
 // API: Update Project fields
-app.put("/api/projects/:id", (req, res) => {
+app.put("/api/projects/:id", async (req, res) => {
   const project = projects.find(p => p.id === req.params.id);
   if (!project) return res.status(404).json({ error: "Không tìm thấy dự án" });
 
   const fields = req.body;
   Object.assign(project, fields);
   project.updatedAt = new Date().toISOString();
+
+  if (getSupabase()) {
+    try {
+      await dbUpdateProject(req.params.id, fields);
+    } catch (err: any) {
+      console.error(`Supabase update project ${req.params.id} failed:`, err.message);
+    }
+  }
+
   res.json(project);
 });
 
 // API: Save updated kịch bản & tạo phiên bản mới (Version History)
-app.post("/api/projects/:id/script-save", (req, res) => {
+app.post("/api/projects/:id/script-save", async (req, res) => {
   const project = projects.find(p => p.id === req.params.id);
   if (!project) return res.status(404).json({ error: "Không tìm thấy dự án" });
 
@@ -1118,6 +1273,19 @@ app.post("/api/projects/:id/script-save", (req, res) => {
   project.versions.unshift(newVer);
   project.updatedAt = new Date().toISOString();
 
+  if (getSupabase()) {
+    try {
+      await dbUpdateProject(req.params.id, {
+        scriptTitle: project.scriptTitle,
+        scriptContent: project.scriptContent,
+        scriptVersionCount: project.scriptVersionCount,
+        versions: project.versions
+      });
+    } catch (err: any) {
+      console.error(`Supabase save script version for ${req.params.id} failed:`, err.message);
+    }
+  }
+
   res.json({
     message: "Tạo phiên bản mới thành công",
     project,
@@ -1126,7 +1294,7 @@ app.post("/api/projects/:id/script-save", (req, res) => {
 });
 
 // API: Restore script version
-app.post("/api/projects/:id/versions/:verNum/restore", (req, res) => {
+app.post("/api/projects/:id/versions/:verNum/restore", async (req, res) => {
   const project = projects.find(p => p.id === req.params.id);
   if (!project) return res.status(404).json({ error: "Không tìm thấy dự án" });
 
@@ -1137,6 +1305,17 @@ app.post("/api/projects/:id/versions/:verNum/restore", (req, res) => {
   project.scriptContent = targetVer.content;
   project.updatedAt = new Date().toISOString();
 
+  if (getSupabase()) {
+    try {
+      await dbUpdateProject(req.params.id, {
+        scriptTitle: project.scriptTitle,
+        scriptContent: project.scriptContent
+      });
+    } catch (err: any) {
+      console.error(`Supabase restore script version for ${req.params.id} failed:`, err.message);
+    }
+  }
+
   res.json({
     message: "Khôi phục phiên bản thành công",
     project
@@ -1144,7 +1323,7 @@ app.post("/api/projects/:id/versions/:verNum/restore", (req, res) => {
 });
 
 // API: Edit individual scene field
-app.put("/api/projects/:id/scenes/:sceneId", (req, res) => {
+app.put("/api/projects/:id/scenes/:sceneId", async (req, res) => {
   const project = projects.find(p => p.id === req.params.id);
   if (!project) return res.status(404).json({ error: "Không tìm thấy dự án" });
 
@@ -1154,16 +1333,27 @@ app.put("/api/projects/:id/scenes/:sceneId", (req, res) => {
   const fields = req.body;
   Object.assign(scene, fields);
   project.updatedAt = new Date().toISOString();
+
+  if (getSupabase()) {
+    try {
+      await dbUpdateProject(req.params.id, {
+        scenes: project.scenes
+      });
+    } catch (err: any) {
+      console.error(`Supabase update scene for project ${req.params.id} failed:`, err.message);
+    }
+  }
+
   res.json({ scene, project });
 });
 
 // API: Clone Project
-app.post("/api/projects/:id/clone", (req, res) => {
+app.post("/api/projects/:id/clone", async (req, res) => {
   const source = projects.find(p => p.id === req.params.id);
   if (!source) return res.status(404).json({ error: "Không tìm thấy dự án gốc" });
 
   const cloned: Project = JSON.parse(JSON.stringify(source));
-  cloned.id = generateId();
+  cloned.id = crypto.randomUUID();
   cloned.name = `${source.name} (Bản sao)`;
   cloned.createdAt = new Date().toISOString();
   cloned.updatedAt = new Date().toISOString();
@@ -1173,26 +1363,58 @@ app.post("/api/projects/:id/clone", (req, res) => {
     sc.id = generateId();
   });
 
+  if (getSupabase()) {
+    try {
+      const saved = await dbCreateProject(cloned);
+      if (saved) {
+        projects.unshift(saved);
+        return res.json(saved);
+      }
+    } catch (err: any) {
+      console.error("Supabase clone project failed, falling back to local memory:", err.message);
+    }
+  }
+
   projects.unshift(cloned);
   res.json(cloned);
 });
 
 // API: Archive project
-app.post("/api/projects/:id/archive", (req, res) => {
+app.post("/api/projects/:id/archive", async (req, res) => {
   const project = projects.find(p => p.id === req.params.id);
   if (!project) return res.status(404).json({ error: "Không tìm thấy dự án" });
 
   project.isArchived = !project.isArchived;
   project.updatedAt = new Date().toISOString();
+
+  if (getSupabase()) {
+    try {
+      await dbUpdateProject(req.params.id, {
+        isArchived: project.isArchived
+      });
+    } catch (err: any) {
+      console.error(`Supabase archive project ${req.params.id} failed:`, err.message);
+    }
+  }
+
   res.json({ message: project.isArchived ? "Đã chuyển vào lưu trữ" : "Đã khôi phục hoạt động", project });
 });
 
 // API: Delete Project
-app.delete("/api/projects/:id", (req, res) => {
+app.delete("/api/projects/:id", async (req, res) => {
   const idx = projects.findIndex(p => p.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Không tìm thấy dự án" });
 
   projects.splice(idx, 1);
+
+  if (getSupabase()) {
+    try {
+      await dbDeleteProject(req.params.id);
+    } catch (err: any) {
+      console.error(`Supabase delete project ${req.params.id} failed:`, err.message);
+    }
+  }
+
   res.json({ message: "Xóa dự án thành công" });
 });
 

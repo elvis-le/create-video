@@ -1,12 +1,30 @@
 import React from "react";
 import { Copy, Check, Server, Database, Layers, Cpu, Code2 } from "lucide-react";
 
-interface Props {
-  lang: "vi" | "en";
+interface SupabaseStatus {
+  configured: boolean;
+  tablesOk: boolean;
+  error: string | null;
+  sqlSetupCode: string;
 }
 
-export default function TechStackBoilerplate({ lang }: Props) {
+interface Props {
+  lang: "vi" | "en";
+  supabaseStatus?: SupabaseStatus | null;
+  onRefreshStatus?: () => void;
+}
+
+export default function TechStackBoilerplate({ lang, supabaseStatus, onRefreshStatus }: Props) {
   const [copiedSection, setCopiedSection] = React.useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const handleVerify = async () => {
+    if (onRefreshStatus) {
+      setIsRefreshing(true);
+      await onRefreshStatus();
+      setTimeout(() => setIsRefreshing(false), 800);
+    }
+  };
 
   const handleCopy = (text: string, sectionId: string) => {
     navigator.clipboard.writeText(text);
@@ -261,6 +279,139 @@ export function rotateFlowAccountCredits(
               : "Proposing production-ready Tech Stack, database schemas, and API key rotator script."}
           </p>
         </div>
+      </div>
+
+      {/* Supabase Status and Setup Board */}
+      <div className="mb-8 bg-[#15151b] border border-gray-800 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Database className="w-5 h-5 text-[#34b1b3]" />
+            <h3 className="text-sm font-bold uppercase text-slate-200 tracking-wide">
+              {lang === "vi" ? "Trạng Thái Đồng Bộ Supabase Cloud" : "Supabase Cloud Sync Status"}
+            </h3>
+          </div>
+          {onRefreshStatus && (
+            <button
+              onClick={handleVerify}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Check className={`w-3.5 h-3.5 text-emerald-400 ${isRefreshing ? "animate-spin" : ""}`} />
+              <span>{isRefreshing ? (lang === "vi" ? "Đang xác minh..." : "Verifying...") : (lang === "vi" ? "Kiểm tra kết nối" : "Verify Connection")}</span>
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          {/* Client Connection */}
+          <div className="bg-[#0f0f13] border border-gray-850 p-3.5 rounded-lg flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">{lang === "vi" ? "CẤU HÌNH BIẾN MÔI TRƯỜNG" : "ENVIRONMENT VARIABLES"}</p>
+              <h4 className="text-sm font-bold mt-1 text-slate-200">
+                {supabaseStatus?.configured ? "SUPABASE_URL & SUPABASE_KEY" : "NOT SET / CHƯA CÓ"}
+              </h4>
+            </div>
+            <div>
+              {supabaseStatus?.configured ? (
+                <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-1 rounded border border-emerald-500/20 uppercase tracking-wide">
+                  {lang === "vi" ? "Hoạt động" : "Connected"}
+                </span>
+              ) : (
+                <span className="bg-rose-500/10 text-rose-400 text-[10px] font-bold px-2 py-1 rounded border border-rose-500/20 uppercase tracking-wide">
+                  {lang === "vi" ? "Chưa cấu hình" : "Missing"}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Tables Connection */}
+          <div className="bg-[#0f0f13] border border-gray-850 p-3.5 rounded-lg flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">{lang === "vi" ? "BẢNG CƠ SỞ DỮ LIỆU" : "DATABASE TABLES"}</p>
+              <h4 className="text-sm font-bold mt-1 text-slate-200">
+                {supabaseStatus?.configured 
+                  ? (supabaseStatus.tablesOk ? "public.projects_supabase" : "Setup Required / Chưa cài đặt") 
+                  : "N/A"}
+              </h4>
+            </div>
+            <div>
+              {supabaseStatus?.configured ? (
+                supabaseStatus.tablesOk ? (
+                  <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-1 rounded border border-emerald-500/20 uppercase tracking-wide">
+                    {lang === "vi" ? "Sẵn sàng" : "Ready"}
+                  </span>
+                ) : (
+                  <span className="bg-amber-500/10 text-amber-400 text-[10px] font-bold px-2 py-1 rounded border border-amber-500/20 uppercase tracking-wide animate-pulse">
+                    {lang === "vi" ? "Cần thiết lập SQL" : "SQL Setup Needed"}
+                  </span>
+                )
+              ) : (
+                <span className="bg-slate-800 text-slate-500 text-[10px] font-bold px-2 py-1 rounded border border-transparent uppercase tracking-wide">
+                  Offline
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Setup Instruction banner when connection is fine but tables are missing */}
+        {supabaseStatus?.configured && !supabaseStatus.tablesOk && (
+          <div className="border border-amber-500/20 bg-amber-500/5 rounded-lg p-4 text-xs text-amber-200 leading-relaxed space-y-3">
+            <p className="font-bold">
+              {lang === "vi" 
+                ? "💡 Hướng dẫn thiết lập Cơ sở dữ liệu Supabase:" 
+                : "💡 How to initialize your Supabase Database:"}
+            </p>
+            <ol className="list-decimal pl-5 space-y-1.5 text-slate-300">
+              <li>
+                {lang === "vi" 
+                  ? "Truy cập Dashboard dự án Supabase của bạn." 
+                  : "Open your Supabase Project Dashboard."}
+              </li>
+              <li>
+                {lang === "vi" 
+                  ? "Vào menu SQL Editor và tạo một Query mới." 
+                  : "Navigate to the SQL Editor menu on the left sidebar and create a 'New Query'."}
+              </li>
+              <li>
+                {lang === "vi" 
+                  ? "Sao chép toàn bộ mã SQL dưới đây, dán vào cửa sổ truy vấn và bấm nút Run." 
+                  : "Copy the exact SQL schema commands provided below, paste them into the query editor, and click 'Run'."}
+              </li>
+              <li>
+                {lang === "vi" 
+                  ? "Bấm nút 'Kiểm tra kết nối' ở trên để bắt đầu đồng bộ hóa dữ liệu thời gian thực!" 
+                  : "Click 'Verify Connection' above to sync up cloud storage with zero downtime!"}
+              </li>
+            </ol>
+
+            {/* SQL Copy Code block */}
+            <div className="mt-3">
+              <div className="flex justify-between items-center bg-[#0d0d12] px-3.5 py-1.5 rounded-t-lg border-t border-x border-gray-800">
+                <span className="font-mono text-[11px] text-gray-400">supabase_setup.sql</span>
+                <button
+                  onClick={() => handleCopy(supabaseStatus.sqlSetupCode || "", "supabase-sql")}
+                  className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-[#34b1b3] transition-colors"
+                >
+                  {copiedSection === "supabase-sql" ? (
+                    <>
+                      <Check className="w-3 h-3 text-green-400" />
+                      <span className="text-green-400">{lang === "vi" ? "Đã chép" : "Copied"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>{lang === "vi" ? "Sao chép" : "Copy"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <pre className="bg-[#08080b] rounded-b-lg border border-gray-800 p-3 max-h-48 overflow-y-auto font-mono text-[10px] text-emerald-300 whitespace-pre scrollbar-thin">
+                {supabaseStatus.sqlSetupCode}
+              </pre>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Recommended Tech Stack Grid */}

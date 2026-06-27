@@ -24,6 +24,10 @@ export const styleOptions = [
   { value: "Đậm chất điện ảnh (Cinematic)", labelVi: "Đậm chất điện ảnh (Cinematic)", labelEn: "Cinematic" },
   { value: "Công nghiệp (Industrial)", labelVi: "Công nghiệp (Industrial)", labelEn: "Industrial Style" },
   { value: "Hoạt hình / Motion Graphics", labelVi: "Hoạt hình / Motion Graphics", labelEn: "Animation / Motion Graphics" },
+  { value: "Chân thực & Đời thường (UGC)", labelVi: "Chân thực & Đời thường (UGC)", labelEn: "Authentic & Everyday (UGC)" },
+  { value: "Vlog / Tâm tình gần gũi", labelVi: "Vlog / Tâm tình gần gũi", labelEn: "Vlog / Intimate & Personal" },
+  { value: "Phóng sự / Review thực tế", labelVi: "Phóng sự / Review thực tế", labelEn: "Documentary / Realistic Review" },
+  { value: "Sang trọng & Tinh tế (Luxury)", labelVi: "Sang trọng & Tinh tế (Luxury)", labelEn: "Elegant & Luxury" },
 ];
 
 export const expertOptions = [
@@ -83,6 +87,7 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
     "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300&auto=format&fit=crop&q=60"
   ]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const applyPreset = (preset: SmartPreset) => {
@@ -107,7 +112,7 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMsg(null);
     if (!e.target.files) return;
     const selectedFiles = Array.from(e.target.files) as File[];
@@ -118,20 +123,47 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
           ? "Thông báo: Bạn chỉ được gửi tối đa 5 ảnh mẫu sản phẩm!"
           : "Notification: You can only upload up to 5 product images!"
       );
-      // Auto-clear error after 4 seconds
       setTimeout(() => setErrorMsg(null), 4000);
       return;
     }
 
-    const newImageUrls = selectedFiles.map(file => URL.createObjectURL(file));
-    setImages(prev => [...prev, ...newImageUrls]);
+    setIsUploading(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (const file of selectedFiles) {
+        const formData = new FormData();
+        formData.append("image", file);
+
+        const res = await fetch("/api/projects/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          throw new Error(lang === "vi" ? "Tải ảnh thất bại!" : "Failed to upload image!");
+        }
+
+        const data = await res.json();
+        if (data && data.url) {
+          uploadedUrls.push(data.url);
+        }
+      }
+
+      setImages(prev => [...prev, ...uploadedUrls]);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(lang === "vi" ? `Lỗi tải ảnh: ${err.message}` : `Upload error: ${err.message}`);
+      setTimeout(() => setErrorMsg(null), 5000);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   const removeImage = (index: number) => {
-    const targetImg = images[index];
-    if (targetImg && targetImg.startsWith("blob:")) {
-      URL.revokeObjectURL(targetImg);
-    }
     setImages(images.filter((_, idx) => idx !== index));
   };
 
@@ -483,14 +515,23 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
               id="btn-upload-product-image"
               type="button"
               onClick={triggerFileInput}
-              disabled={images.length >= 5}
+              disabled={images.length >= 5 || isUploading}
               className="flex items-center gap-1.5 text-xs font-bold bg-[#34b1b3] hover:bg-[#2db3b5] active:scale-95 text-white cursor-pointer rounded-lg px-4 py-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 shadow-md shadow-[#34b1b3]/20"
             >
-              <Upload className="w-3.5 h-3.5" />
+              {isUploading ? (
+                <svg className="animate-spin h-3.5 w-3.5 text-white animate-pulse" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
               <span>
-                {images.length >= 5 
-                  ? (lang === "vi" ? "Đã đạt giới hạn ảnh" : "Limit reached")
-                  : (lang === "vi" ? "Tải Ảnh Lên" : "Upload Image")}
+                {isUploading 
+                  ? (lang === "vi" ? "Đang tải..." : "Uploading...")
+                  : images.length >= 5 
+                    ? (lang === "vi" ? "Đã đạt giới hạn ảnh" : "Limit reached")
+                    : (lang === "vi" ? "Tải Ảnh Lên" : "Upload Image")}
               </span>
             </button>
           </div>
@@ -511,7 +552,7 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
             </div>
           )}
 
-          {images.length === 0 ? (
+          {images.length === 0 && !isUploading ? (
             <div className="text-center py-6 text-xs text-slate-500">
               {lang === "vi" ? "Chưa có ảnh mẫu nào được gắn kèm. Hãy nhấp 'Tải Ảnh Lên' để bắt đầu." : "No references linked. Click to include image layouts."}
             </div>
@@ -519,7 +560,7 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
             <div className="grid grid-cols-5 gap-3">
               {images.map((img, index) => (
                 <div key={index} className="relative group rounded-lg overflow-hidden border border-white/10 hover:border-[#34b1b3] bg-black/30 shadow-md h-24 transition-all duration-200">
-                  <img src={img} alt="mock-prod-ref" className="w-full h-full object-cover" />
+                  <img src={img} alt="mock-prod-ref" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
@@ -533,7 +574,16 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                   </div>
                 </div>
               ))}
-              {images.length < 5 && (
+              {isUploading && (
+                <div className="relative rounded-lg overflow-hidden border border-[#34b1b3]/50 bg-black/30 animate-pulse h-24 flex flex-col items-center justify-center text-[#34b1b3]">
+                  <svg className="animate-spin h-5 w-5 text-[#34b1b3] mb-1" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span className="text-[9px] uppercase font-mono">{lang === "vi" ? "Đang lưu..." : "Saving..."}</span>
+                </div>
+              )}
+              {images.length < 5 && !isUploading && (
                 <button
                   type="button"
                   onClick={triggerFileInput}

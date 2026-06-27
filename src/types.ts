@@ -130,3 +130,10 @@ export interface SmartPreset {
   ctaVi: string;
   ctaEn: string;
 }
+
+export interface SupabaseStatus {
+  configured: boolean;
+  tablesOk: boolean;
+  error: string | null;
+  sqlSetupCode: string;
+}

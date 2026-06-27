@@ -10,7 +10,7 @@ import ScenesBreakdown from "./components/ScenesBreakdown";
 import ImageVideoGenerator from "./components/ImageVideoGenerator";
 import AdminDashboard from "./components/AdminDashboard";
 import TechStackBoilerplate from "./components/TechStackBoilerplate";
-import { Project, GeminiKey, FlowAccount, QueueTask, AIModelSettings, LogEntry, IndustryTemplate, SmartPreset, Scene } from "./types";
+import { Project, GeminiKey, FlowAccount, QueueTask, AIModelSettings, LogEntry, IndustryTemplate, SmartPreset, Scene, SupabaseStatus } from "./types";
 
 export default function App() {
   const [lang, setLang] = useState<"vi" | "en">("vi");
@@ -25,6 +25,7 @@ export default function App() {
   const [modelSettings, setModelSettings] = useState<AIModelSettings | null>(null);
   const [industries, setIndustries] = useState<IndustryTemplate[]>([]);
   const [presets, setPresets] = useState<SmartPreset[]>([]);
+  const [supabaseStatus, setSupabaseStatus] = useState<SupabaseStatus | null>(null);
 
   // Task processing control
   const [activeTaskLogs, setActiveTaskLogs] = useState<LogEntry[]>([]);
@@ -38,6 +39,15 @@ export default function App() {
       const dataConst = await resConst.json();
       setIndustries(dataConst.industryTemplates || []);
       setPresets(dataConst.smartPresets || []);
+
+      // Fetch status first
+      try {
+        const resSupa = await fetch("/api/supabase-status");
+        const dataSupa = await resSupa.json();
+        setSupabaseStatus(dataSupa);
+      } catch (e) {
+        console.warn("Could not load Supabase status:", e);
+      }
 
       const resProj = await fetch("/api/projects");
       const dataProj = await resProj.json();
@@ -499,6 +509,36 @@ export default function App() {
       {/* Main Canvas Container */}
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto relative z-10">
         
+        {supabaseStatus && supabaseStatus.configured && !supabaseStatus.tablesOk && (
+          <div className="mb-6 bg-amber-500/10 border border-amber-500/30 text-amber-200 px-5 py-3 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-lg shadow-amber-500/5 relative z-10 animate-pulse">
+            <div className="flex items-start md:items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 md:mt-0" />
+              <div>
+                <span className="font-bold">
+                  {lang === "vi" ? "Yêu cầu cấu hình Supabase:" : "Supabase Setup Required:"}
+                </span>{" "}
+                {lang === "vi" 
+                  ? "Kết nối Supabase đã kích hoạt, nhưng các bảng dữ liệu chưa được khởi tạo. Vui lòng chạy tập lệnh SQL cài đặt." 
+                  : "Supabase connection is active, but required tables are missing. Please run the SQL setup script."}
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0 self-end md:self-auto">
+              <button
+                onClick={() => setActiveTab("tech")}
+                className="bg-amber-500/25 hover:bg-amber-500/35 active:scale-95 text-amber-100 font-bold px-3 py-1.5 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
+              >
+                {lang === "vi" ? "Xem Script SQL & Cài Đặt" : "View SQL Script & Setup"}
+              </button>
+              <button
+                onClick={fetchAllData}
+                className="bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 font-bold px-3 py-1.5 rounded-lg border border-white/10 transition-all flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>{lang === "vi" ? "Kiểm tra lại" : "Verify Connection"}</span>
+              </button>
+            </div>
+          </div>
+        )}
         {activeTab === "dashboard" && (
           <UserDashboard
             lang={lang}
@@ -582,7 +622,11 @@ export default function App() {
         )}
 
         {activeTab === "tech" && (
-          <TechStackBoilerplate lang={lang} />
+          <TechStackBoilerplate 
+            lang={lang} 
+            supabaseStatus={supabaseStatus} 
+            onRefreshStatus={fetchAllData} 
+          />
         )}
 
       </main>

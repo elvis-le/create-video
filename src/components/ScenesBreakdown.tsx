@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Clapperboard, Sparkles, Edit3, Image, Video, Mic, RefreshCw, 
-  Download, FileSpreadsheet, Play, CheckCircle2, History, AlertCircle
+  Download, FileSpreadsheet, Play, CheckCircle2, History, AlertCircle,
+  Copy, Check, X
 } from "lucide-react";
 import { Project, Scene, LogEntry } from "../types";
+import { motion, AnimatePresence } from "motion/react";
 
 interface Props {
   lang: "vi" | "en";
@@ -22,6 +24,32 @@ export default function ScenesBreakdown({ lang, project, logs, onUpdateScene, on
   const [editImgPrompt, setEditImgPrompt] = useState("");
   const [editVidPrompt, setEditVidPrompt] = useState("");
   const [editVoice, setEditVoice] = useState("");
+
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const handleCopy = (text: string, key: string, label: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedKey(key);
+      setToast({
+        message: lang === "vi" ? `Đã sao chép ${label}!` : `Copied ${label}!`,
+        type: "success"
+      });
+      setTimeout(() => {
+        setCopiedKey(null);
+      }, 2000);
+    }).catch(err => {
+      console.error("Failed to copy text: ", err);
+    });
+  };
 
   const startEdit = (sc: Scene) => {
     setActiveEditingScene(sc.id);
@@ -200,9 +228,27 @@ export default function ScenesBreakdown({ lang, project, logs, onUpdateScene, on
                           rows={2}
                         />
                       ) : (
-                        <p className="text-slate-300 italic bg-black/10 p-2.5 rounded border border-white/5">
-                          {lang === "vi" ? sc.descriptionVi : sc.descriptionEn}
-                        </p>
+                        <div className="relative group/field">
+                          <p className="text-slate-300 italic bg-black/10 p-2.5 pr-10 rounded border border-white/5 whitespace-pre-wrap">
+                            {lang === "vi" ? sc.descriptionVi : sc.descriptionEn}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(
+                              lang === "vi" ? sc.descriptionVi : sc.descriptionEn,
+                              `${sc.id}-desc`,
+                              lang === "vi" ? "mô tả cảnh" : "scene description"
+                            )}
+                            className="absolute top-2 right-2 p-1.5 rounded bg-black/30 text-slate-400 hover:text-[#34b1b3] hover:bg-black/60 transition-colors cursor-pointer"
+                            title={lang === "vi" ? "Sao chép mô tả" : "Copy description"}
+                          >
+                            {copiedKey === `${sc.id}-desc` ? (
+                              <Check className="w-3.5 h-3.5 text-[#34b1b3]" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -222,18 +268,38 @@ export default function ScenesBreakdown({ lang, project, logs, onUpdateScene, on
                           rows={2}
                         />
                       ) : (
-                        <p className="font-mono text-[10px] text-slate-400 bg-black/20 p-2.5 rounded w-full border border-white/5">
+                        <p className="font-mono text-[10px] text-slate-400 bg-black/20 p-2.5 rounded w-full border border-white/5 whitespace-pre-wrap break-all">
                           {sc.promptImage}
                         </p>
                       )}
                       
-                      <button
-                        title={lang === "vi" ? "Tạo lại prompt ảnh" : "Regenerate image specifications"}
-                        onClick={() => regenerateIndividualField(sc.id, "imgPrompts")}
-                        className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-[#34b1b3] cursor-pointer"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </button>
+                      {activeEditingScene !== sc.id && (
+                        <div className="flex items-center gap-1 shrink-0 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(
+                              sc.promptImage,
+                              `${sc.id}-img`,
+                              lang === "vi" ? "prompt ảnh" : "image prompt"
+                            )}
+                            className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-[#34b1b3] transition-colors cursor-pointer"
+                            title={lang === "vi" ? "Sao chép prompt ảnh" : "Copy image prompt"}
+                          >
+                            {copiedKey === `${sc.id}-img` ? (
+                              <Check className="w-3.5 h-3.5 text-[#34b1b3]" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <button
+                            title={lang === "vi" ? "Tạo lại prompt ảnh" : "Regenerate image specifications"}
+                            onClick={() => regenerateIndividualField(sc.id, "imgPrompts")}
+                            className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-[#34b1b3] cursor-pointer"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -252,18 +318,38 @@ export default function ScenesBreakdown({ lang, project, logs, onUpdateScene, on
                           rows={2}
                         />
                       ) : (
-                        <p className="font-mono text-[10px] text-slate-400 bg-black/20 p-2.5 rounded w-full border border-white/5">
+                        <p className="font-mono text-[10px] text-slate-400 bg-black/20 p-2.5 rounded w-full border border-white/5 whitespace-pre-wrap break-all">
                           {sc.promptVideo}
                         </p>
                       )}
 
-                      <button
-                        title={lang === "vi" ? "Tạo lại prompt video" : "Regenerate video specifications"}
-                        onClick={() => regenerateIndividualField(sc.id, "vidPrompts")}
-                        className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-[#34b1b3] cursor-pointer"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </button>
+                      {activeEditingScene !== sc.id && (
+                        <div className="flex items-center gap-1 shrink-0 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(
+                              sc.promptVideo,
+                              `${sc.id}-vid`,
+                              lang === "vi" ? "prompt video" : "video prompt"
+                            )}
+                            className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-[#34b1b3] transition-colors cursor-pointer"
+                            title={lang === "vi" ? "Sao chép prompt video" : "Copy video prompt"}
+                          >
+                            {copiedKey === `${sc.id}-vid` ? (
+                              <Check className="w-3.5 h-3.5 text-[#34b1b3]" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <button
+                            title={lang === "vi" ? "Tạo lại prompt video" : "Regenerate video specifications"}
+                            onClick={() => regenerateIndividualField(sc.id, "vidPrompts")}
+                            className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-[#34b1b3] cursor-pointer"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -282,9 +368,27 @@ export default function ScenesBreakdown({ lang, project, logs, onUpdateScene, on
                           rows={2}
                         />
                       ) : (
-                        <p className="font-semibold text-white bg-black/15 p-2 rounded border border-white/5">
-                          🎙️ {lang === "vi" ? sc.voiceScriptVi : sc.voiceScriptEn}
-                        </p>
+                        <div className="relative group/field">
+                          <p className="font-semibold text-white bg-black/15 p-2.5 pr-10 rounded border border-white/5 whitespace-pre-wrap">
+                            🎙️ {lang === "vi" ? sc.voiceScriptVi : sc.voiceScriptEn}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(
+                              lang === "vi" ? sc.voiceScriptVi : sc.voiceScriptEn,
+                              `${sc.id}-voice`,
+                              lang === "vi" ? "giọng đọc" : "voice script"
+                            )}
+                            className="absolute top-2 right-2 p-1.5 rounded bg-black/30 text-slate-400 hover:text-[#34b1b3] hover:bg-black/60 transition-colors cursor-pointer"
+                            title={lang === "vi" ? "Sao chép giọng đọc" : "Copy voice script"}
+                          >
+                            {copiedKey === `${sc.id}-voice` ? (
+                              <Check className="w-3.5 h-3.5 text-[#34b1b3]" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -365,6 +469,27 @@ export default function ScenesBreakdown({ lang, project, logs, onUpdateScene, on
           </div>
         </div>
       </div>
+
+      {/* Toast Overlay */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-lg shadow-2xl border backdrop-blur-md text-xs font-semibold bg-[#091f24]/90 border-[#34b1b3] text-[#34b1b3]"
+          >
+            <div className="flex-1 font-sans">{toast.message}</div>
+            <button 
+              onClick={() => setToast(null)}
+              className="text-slate-400 hover:text-white ml-2 transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
