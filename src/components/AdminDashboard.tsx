@@ -13,6 +13,7 @@ interface Props {
   queueTasks: QueueTask[];
   modelSettings: AIModelSettings;
   onAddGeminiKey: (name: string, key: string) => Promise<void>;
+  onAddGeminiKeysBulk: (keys: { name: string; apiKey: string }[]) => Promise<number>;
   onToggleGeminiKey: (id: string, currentStatus: string) => Promise<void>;
   onDeleteGeminiKey: (id: string) => Promise<void>;
   onAddFlowAccount: (name: string, key: string, credit: number) => Promise<void>;
@@ -24,7 +25,7 @@ interface Props {
 
 export default function AdminDashboard({
   lang, geminiKeys, flowAccounts, queueTasks, modelSettings,
-  onAddGeminiKey, onToggleGeminiKey, onDeleteGeminiKey,
+  onAddGeminiKey, onAddGeminiKeysBulk, onToggleGeminiKey, onDeleteGeminiKey,
   onAddFlowAccount, onUpdateFlowAccountCredit, onDeleteFlowAccount,
   onUpdateModelSettings, onClearQueueLogs
 }: Props) {
@@ -37,6 +38,60 @@ export default function AdminDashboard({
   const [newFlowName, setNewFlowName] = useState("");
   const [newFlowValue, setNewFlowValue] = useState("");
   const [newFlowCredit, setNewFlowCredit] = useState(100);
+
+  // Bulk add modal states
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkKeysText, setBulkKeysText] = useState("");
+  const [bulkToast, setBulkToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const handleBulkSubmit = async () => {
+    if (!bulkKeysText.trim()) return;
+
+    // Split rows
+    const lines = bulkKeysText.split("\n");
+    // Trim and filter empty
+    const rawKeys = lines.map(k => k.trim()).filter(k => k !== "");
+    // Deduplicate
+    const uniqueKeys: string[] = Array.from(new Set(rawKeys));
+
+    if (uniqueKeys.length === 0) {
+      setBulkToast({
+        message: lang === "vi" ? "Không tìm thấy API Key hợp lệ nào!" : "No valid API Keys found!",
+        type: "error"
+      });
+      return;
+    }
+
+    // Build array of objects
+    const keysToInsert = uniqueKeys.map((keyVal, idx) => ({
+      name: `Bulk Key #${idx + 1} (${new Date().toLocaleDateString()})`,
+      apiKey: keyVal
+    }));
+
+    try {
+      const addedCount = await onAddGeminiKeysBulk(keysToInsert);
+      
+      setBulkToast({
+        message: lang === "vi" 
+          ? `Đã thêm thành công ${addedCount} API Key mới!` 
+          : `Successfully added ${addedCount} new API Keys!`,
+        type: "success"
+      });
+      
+      setBulkKeysText("");
+      setIsBulkModalOpen(false);
+
+      // Dismiss toast after 5s
+      setTimeout(() => {
+        setBulkToast(null);
+      }, 5000);
+    } catch (err: any) {
+      setBulkToast({
+        message: lang === "vi" ? "Lỗi khi thêm hàng loạt API Key!" : "Error adding bulk API Keys!",
+        type: "error"
+      });
+    }
+  };
 
   // Stats Card Calculations
   const activeKeysCount = geminiKeys.filter(k => k.status === "Active").length;
@@ -148,7 +203,28 @@ export default function AdminDashboard({
 
       {/* Sub-tab canvas panel */}
       {activeTab === "api-pool" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4 animate-fade-in">
+          {bulkToast && (
+            <div className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 shadow-lg ${
+              bulkToast.type === "success" 
+                ? "bg-emerald-500/15 border-emerald-500/20 text-emerald-300" 
+                : "bg-red-500/15 border-red-500/20 text-red-300"
+            }`}>
+              <div className="flex items-center gap-2">
+                {bulkToast.type === "success" ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <XCircle className="w-4 h-4 text-red-400 shrink-0" />}
+                <span className="font-medium">{bulkToast.message}</span>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setBulkToast(null)}
+                className="text-slate-450 hover:text-white transition-colors cursor-pointer"
+              >
+                <XCircle className="w-4 h-4 text-slate-400 hover:text-white" />
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gemini Key Pool List */}
           <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-5 shadow-xl space-y-4">
             <div className="flex justify-between items-center pb-2 border-b border-white/10">
@@ -215,12 +291,21 @@ export default function AdminDashboard({
                   className="rounded p-2.5 bg-black/30 border border-white/10 focus:outline-none focus:border-[#34b1b3] text-white"
                 />
               </div>
-              <button
-                type="submit"
-                className="w-full bg-[#34b1b3] hover:bg-[#2db3b5] text-white text-xs font-bold rounded py-2 transition-all cursor-pointer shadow-md shadow-[#34b1b3]/25"
-              >
-                {lang === "vi" ? "Đưa vào hồ xoay vòng" : "Save and add to pool"}
-              </button>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="submit"
+                  className="bg-[#34b1b3] hover:bg-[#2db3b5] text-white text-xs font-bold rounded py-2 transition-all cursor-pointer shadow-md shadow-[#34b1b3]/25"
+                >
+                  {lang === "vi" ? "Đưa vào hồ xoay" : "Save Single"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsBulkModalOpen(true)}
+                  className="bg-transparent hover:bg-white/5 text-[#34b1b3] border border-[#34b1b3]/50 hover:border-[#34b1b3] text-xs font-bold rounded py-2 transition-all cursor-pointer"
+                >
+                  {lang === "vi" ? "Thêm hàng loạt ⚡" : "Bulk Add ⚡"}
+                </button>
+              </div>
             </form>
           </div>
 
@@ -306,6 +391,7 @@ export default function AdminDashboard({
               </button>
             </form>
           </div>
+        </div>
         </div>
       )}
 
@@ -442,6 +528,62 @@ export default function AdminDashboard({
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Add Modal */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-[#121214] border border-white/10 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Key className="w-4 h-4 text-[#34b1b3]" />
+                <span>{lang === "vi" ? "Thêm Hàng Loạt API Key" : "Bulk Add Gemini API Keys"}</span>
+              </h3>
+              <button 
+                onClick={() => setIsBulkModalOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              {lang === "vi" 
+                ? "Nhập danh sách API Key của bạn bên dưới, mỗi dòng một key. Hệ thống sẽ tự động tách dòng, làm sạch khoảng trắng và loại bỏ các khóa trùng lặp."
+                : "Enter your list of API Keys below, one key per line. The system will split, trim, and deduplicate them automatically."}
+            </p>
+
+            <textarea
+              rows={8}
+              value={bulkKeysText}
+              onChange={(e) => setBulkKeysText(e.target.value)}
+              placeholder={lang === "vi" 
+                ? "Nhập danh sách API Key, mỗi key một dòng...\nAIzaSyB...\nAIzaSyC..." 
+                : "Enter list of API Keys, one per line...\nAIzaSyB...\nAIzaSyC..."}
+              className="w-full rounded-xl p-3 bg-black/40 border border-white/10 text-xs font-mono focus:outline-none focus:border-[#34b1b3] text-white placeholder-slate-500 overflow-y-auto scrollbar-thin"
+            />
+
+            <div className="flex justify-end gap-2 text-xs font-semibold pt-2">
+              <button
+                onClick={() => {
+                  setBulkKeysText("");
+                  setIsBulkModalOpen(false);
+                }}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 hover:text-white cursor-pointer transition-all"
+              >
+                {lang === "vi" ? "Hủy bỏ" : "Cancel"}
+              </button>
+              <button
+                onClick={handleBulkSubmit}
+                disabled={!bulkKeysText.trim()}
+                className={`px-4 py-2 bg-[#34b1b3] hover:bg-[#2db3b5] text-white rounded-lg cursor-pointer transition-all flex items-center gap-1.5 shadow-md shadow-[#34b1b3]/20 ${!bulkKeysText.trim() ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{lang === "vi" ? "Xác nhận thêm" : "Confirm and Add"}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

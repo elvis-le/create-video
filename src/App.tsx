@@ -258,6 +258,22 @@ export default function App() {
     }
   };
 
+  const handleAddGeminiKeysBulk = async (keys: { name: string; apiKey: string }[]) => {
+    try {
+      const res = await fetch("/api/keys/gemini/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keys })
+      });
+      const newKeys = await res.json();
+      setGeminiKeys([...geminiKeys, ...newKeys]);
+      return newKeys.length;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
   const handleToggleGeminiKey = async (id: string, currentStatus: string) => {
     try {
       const targetStatus = currentStatus === "Active" ? "Inactive" : "Active";
@@ -611,6 +627,7 @@ export default function App() {
             queueTasks={queueTasks}
             modelSettings={modelSettings}
             onAddGeminiKey={handleAddGeminiKey}
+            onAddGeminiKeysBulk={handleAddGeminiKeysBulk}
             onToggleGeminiKey={handleToggleGeminiKey}
             onDeleteGeminiKey={handleDeleteGeminiKey}
             onAddFlowAccount={handleAddFlowAccount}

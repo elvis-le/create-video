@@ -25,7 +25,16 @@ import {
   dbUpdateProject,
   dbDeleteProject,
   dbUploadReferenceImage,
-  SQL_SCHEMA_SETUP
+  SQL_SCHEMA_SETUP,
+  dbFetchAllGeminiKeys,
+  dbCreateGeminiKey,
+  dbBulkCreateGeminiKeys,
+  dbUpdateGeminiKey,
+  dbDeleteGeminiKey,
+  dbFetchAllFlowAccounts,
+  dbCreateFlowAccount,
+  dbUpdateFlowAccount,
+  dbDeleteFlowAccount
 } from "./supabaseService.js";
 
 // Helper for generating unique IDs
@@ -49,6 +58,26 @@ if (getSupabase()) {
     } catch (err: any) {
       supabasePrehydrateError = err?.message || JSON.stringify(err);
       console.warn("🚨 Notice: Failed to pre-hydrate cache from Supabase (tables might not exist yet):", err.message);
+    }
+
+    try {
+      const keys = await dbFetchAllGeminiKeys();
+      if (keys && keys.length > 0) {
+        geminiKeys = keys;
+        console.log(`📦 Successfully pre-hydrated ${geminiKeys.length} Gemini keys from Supabase database.`);
+      }
+    } catch (err: any) {
+      console.warn("🚨 Notice: Failed to pre-hydrate Gemini keys from Supabase (tables might not exist yet):", err.message);
+    }
+
+    try {
+      const accounts = await dbFetchAllFlowAccounts();
+      if (accounts && accounts.length > 0) {
+        flowAccounts = accounts;
+        console.log(`📦 Successfully pre-hydrated ${flowAccounts.length} Flow accounts from Supabase database.`);
+      }
+    } catch (err: any) {
+      console.warn("🚨 Notice: Failed to pre-hydrate Flow accounts from Supabase (tables might not exist yet):", err.message);
     }
   });
 }
@@ -1461,7 +1490,7 @@ app.get("/api/keys/gemini", (req, res) => {
   res.json(geminiKeys);
 });
 
-app.post("/api/keys/gemini", (req, res) => {
+app.post("/api/keys/gemini", async (req, res) => {
   const { name, apiKey } = req.body;
   if (!name || !apiKey) return res.status(400).json({ error: "Vui lòng nhập tên và mã API Key" });
   
@@ -1473,23 +1502,84 @@ app.post("/api/keys/gemini", (req, res) => {
     usageCount: 0,
     errorCount: 0
   };
+
+  if (getSupabase()) {
+    try {
+      const dbKey = await dbCreateGeminiKey(nKey);
+      geminiKeys.push(dbKey);
+      return res.status(201).json(dbKey);
+    } catch (err: any) {
+      console.warn("⚠️ Notice: Failed to save Gemini key to Supabase, saving to memory:", err.message);
+    }
+  }
+
   geminiKeys.push(nKey);
   res.status(201).json(nKey);
 });
 
-app.put("/api/keys/gemini/:id", (req, res) => {
+// API: Bulk Add Gemini Keys
+app.post("/api/keys/gemini/bulk", async (req, res) => {
+  const { keys } = req.body;
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return res.status(400).json({ error: "Danh sách API Key không hợp lệ" });
+  }
+
+  const newKeys: GeminiKey[] = keys.map((k: any) => ({
+    id: `gkey-${generateId()}`,
+    name: k.name || `Bulk Key`,
+    apiKey: k.apiKey,
+    status: "Active",
+    usageCount: 0,
+    errorCount: 0
+  }));
+
+  if (getSupabase()) {
+    try {
+      const dbKeys = await dbBulkCreateGeminiKeys(newKeys);
+      geminiKeys = [...geminiKeys, ...dbKeys];
+      return res.status(201).json(dbKeys);
+    } catch (err: any) {
+      console.warn("⚠️ Notice: Failed to bulk save Gemini keys to Supabase, saving to memory:", err.message);
+    }
+  }
+
+  geminiKeys = [...geminiKeys, ...newKeys];
+  res.status(201).json(newKeys);
+});
+
+app.put("/api/keys/gemini/:id", async (req, res) => {
   const key = geminiKeys.find(k => k.id === req.params.id);
   if (!key) return res.status(404).json({ error: "Không tìm thấy API Key" });
   
   const { name, status, apiKey } = req.body;
-  if (name !== undefined) key.name = name;
-  if (status !== undefined) key.status = status;
-  if (apiKey !== undefined) key.apiKey = apiKey;
+  const updates: any = {};
+  if (name !== undefined) { key.name = name; updates.name = name; }
+  if (status !== undefined) { key.status = status; updates.status = status; }
+  if (apiKey !== undefined) { key.apiKey = apiKey; updates.apiKey = apiKey; }
+
+  if (getSupabase()) {
+    try {
+      await dbUpdateGeminiKey(req.params.id, updates);
+    } catch (err: any) {
+      console.warn("⚠️ Notice: Failed to update Gemini key in Supabase, updating in memory:", err.message);
+    }
+  }
   
   res.json(key);
 });
 
-app.delete("/api/keys/gemini/:id", (req, res) => {
+app.delete("/api/keys/gemini/:id", async (req, res) => {
+  const key = geminiKeys.find(k => k.id === req.params.id);
+  if (!key) return res.status(404).json({ error: "Không tìm thấy API Key" });
+
+  if (getSupabase()) {
+    try {
+      await dbDeleteGeminiKey(req.params.id);
+    } catch (err: any) {
+      console.warn("⚠️ Notice: Failed to delete Gemini key from Supabase, deleting from memory:", err.message);
+    }
+  }
+
   geminiKeys = geminiKeys.filter(k => k.id !== req.params.id);
   res.json({ message: "Xóa khóa thành công" });
 });
@@ -1499,7 +1589,7 @@ app.get("/api/keys/flow", (req, res) => {
   res.json(flowAccounts);
 });
 
-app.post("/api/keys/flow", (req, res) => {
+app.post("/api/keys/flow", async (req, res) => {
   const { name, apiKey, credit } = req.body;
   if (!name || !apiKey) return res.status(400).json({ error: "Vui lòng nhập tên và khóa Flow" });
   
@@ -1511,27 +1601,60 @@ app.post("/api/keys/flow", (req, res) => {
     credit: credit !== undefined ? Number(credit) : 100,
     usageCount: 0
   };
+
+  if (getSupabase()) {
+    try {
+      const dbAcc = await dbCreateFlowAccount(nAcc);
+      flowAccounts.push(dbAcc);
+      return res.status(201).json(dbAcc);
+    } catch (err: any) {
+      console.warn("⚠️ Notice: Failed to save Flow account to Supabase, saving to memory:", err.message);
+    }
+  }
+
   flowAccounts.push(nAcc);
   res.status(201).json(nAcc);
 });
 
-app.put("/api/keys/flow/:id", (req, res) => {
+app.put("/api/keys/flow/:id", async (req, res) => {
   const acc = flowAccounts.find(a => a.id === req.params.id);
   if (!acc) return res.status(404).json({ error: "Không tìm thấy tài khoản Flow" });
   
   const { name, status, credit, apiKey } = req.body;
-  if (name !== undefined) acc.name = name;
-  if (status !== undefined) acc.status = status;
-  if (apiKey !== undefined) acc.apiKey = apiKey;
+  const updates: any = {};
+  if (name !== undefined) { acc.name = name; updates.name = name; }
+  if (status !== undefined) { acc.status = status; updates.status = status; }
+  if (apiKey !== undefined) { acc.apiKey = apiKey; updates.apiKey = apiKey; }
   if (credit !== undefined) {
     acc.credit = Number(credit);
     acc.status = acc.credit > 0 ? "Active" : "Exhausted";
+    updates.credit = Number(credit);
+    updates.status = acc.status;
+  }
+
+  if (getSupabase()) {
+    try {
+      await dbUpdateFlowAccount(req.params.id, updates);
+    } catch (err: any) {
+      console.warn("⚠️ Notice: Failed to update Flow account in Supabase, updating in memory:", err.message);
+    }
   }
   
   res.json(acc);
 });
 
-app.delete("/api/keys/flow/:id", (req, res) => {
+app.delete("/api/keys/flow/:id", async (req, res) => {
+  const acc = flowAccounts.find(a => a.id === req.params.id);
+  if (!acc) return res.status(404).json({ error: "Không tìm thấy tài khoản Flow" });
+
+  if (getSupabase()) {
+    try {
+      await dbDeleteFlowAccount(req.params.id);
+    } catch (err: any) {
+      console.warn("⚠️ Notice: Failed to delete Flow account from Supabase, deleting from memory:", err.message);
+    }
+  }
+
   flowAccounts = flowAccounts.filter(a => a.id !== req.params.id);
   res.json({ message: "Xóa tài khoản Flow thành công" });
 });

@@ -97,6 +97,60 @@ CREATE POLICY "Allow public update on reference_images" ON storage.objects
 DROP POLICY IF EXISTS "Allow public delete on reference_images" ON storage.objects;
 CREATE POLICY "Allow public delete on reference_images" ON storage.objects
   FOR DELETE TO public USING (bucket_id = 'reference_images');
+
+-- 6. Tạo bảng gemini_accounts quản lý pool API key
+CREATE TABLE IF NOT EXISTS gemini_accounts (
+  id VARCHAR(100) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  api_key TEXT NOT NULL,
+  status VARCHAR(50) DEFAULT 'Active',
+  usage_count INT DEFAULT 0,
+  error_count INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Bật RLS cho gemini_accounts
+ALTER TABLE gemini_accounts ENABLE ROW LEVEL SECURITY;
+
+-- Tạo chính sách cho gemini_accounts
+DROP POLICY IF EXISTS "Allow public select on gemini_accounts" ON gemini_accounts;
+CREATE POLICY "Allow public select on gemini_accounts" ON gemini_accounts FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Allow public insert on gemini_accounts" ON gemini_accounts;
+CREATE POLICY "Allow public insert on gemini_accounts" ON gemini_accounts FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public update on gemini_accounts" ON gemini_accounts;
+CREATE POLICY "Allow public update on gemini_accounts" ON gemini_accounts FOR UPDATE TO public USING (true);
+
+DROP POLICY IF EXISTS "Allow public delete on gemini_accounts" ON gemini_accounts;
+CREATE POLICY "Allow public delete on gemini_accounts" ON gemini_accounts FOR DELETE TO public USING (true);
+
+-- 7. Tạo bảng flow_accounts quản lý pool Flow tokens
+CREATE TABLE IF NOT EXISTS flow_accounts (
+  id VARCHAR(100) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  api_key TEXT NOT NULL,
+  status VARCHAR(50) DEFAULT 'Active',
+  credit INT DEFAULT 100,
+  usage_count INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Bật RLS cho flow_accounts
+ALTER TABLE flow_accounts ENABLE ROW LEVEL SECURITY;
+
+-- Tạo chính sách cho flow_accounts
+DROP POLICY IF EXISTS "Allow public select on flow_accounts" ON flow_accounts;
+CREATE POLICY "Allow public select on flow_accounts" ON flow_accounts FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Allow public insert on flow_accounts" ON flow_accounts;
+CREATE POLICY "Allow public insert on flow_accounts" ON flow_accounts FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public update on flow_accounts" ON flow_accounts;
+CREATE POLICY "Allow public update on flow_accounts" ON flow_accounts FOR UPDATE TO public USING (true);
+
+DROP POLICY IF EXISTS "Allow public delete on flow_accounts" ON flow_accounts;
+CREATE POLICY "Allow public delete on flow_accounts" ON flow_accounts FOR DELETE TO public USING (true);
 `;
 
 /**
@@ -370,4 +424,197 @@ export async function dbUploadReferenceImage(
     console.error("dbUploadReferenceImage Error:", err);
     throw err;
   }
+}
+
+/**
+ * Gemini Accounts db functions
+ */
+export async function dbFetchAllGeminiKeys(): Promise<any[]> {
+  if (!supabase) return [];
+  try {
+    const { data: rows, error } = await supabase
+      .from("gemini_accounts")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (rows || []).map(r => ({
+      id: r.id,
+      name: r.name,
+      apiKey: r.api_key,
+      status: r.status,
+      usageCount: r.usage_count || 0,
+      errorCount: r.error_count || 0
+    }));
+  } catch (err) {
+    console.warn("⚠️ Notice: dbFetchAllGeminiKeys error:", err);
+    throw err;
+  }
+}
+
+export async function dbCreateGeminiKey(keyData: any): Promise<any> {
+  if (!supabase) return null;
+  const payload = {
+    id: keyData.id,
+    name: keyData.name,
+    api_key: keyData.apiKey,
+    status: keyData.status || "Active",
+    usage_count: keyData.usageCount || 0,
+    error_count: keyData.errorCount || 0
+  };
+  const { data, error } = await supabase
+    .from("gemini_accounts")
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    name: data.name,
+    apiKey: data.api_key,
+    status: data.status,
+    usageCount: data.usage_count,
+    errorCount: data.error_count
+  };
+}
+
+export async function dbBulkCreateGeminiKeys(keysArray: any[]): Promise<any[]> {
+  if (!supabase) return [];
+  const payloads = keysArray.map(k => ({
+    id: k.id,
+    name: k.name,
+    api_key: k.apiKey,
+    status: k.status || "Active",
+    usage_count: k.usageCount || 0,
+    error_count: k.errorCount || 0
+  }));
+  const { data, error } = await supabase
+    .from("gemini_accounts")
+    .insert(payloads)
+    .select();
+  if (error) throw error;
+  return (data || []).map(r => ({
+    id: r.id,
+    name: r.name,
+    apiKey: r.api_key,
+    status: r.status,
+    usageCount: r.usage_count,
+    errorCount: r.error_count
+  }));
+}
+
+export async function dbUpdateGeminiKey(id: string, updates: Partial<any>): Promise<any> {
+  if (!supabase) return null;
+  const payload: any = {};
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.apiKey !== undefined) payload.api_key = updates.apiKey;
+  if (updates.status !== undefined) payload.status = updates.status;
+  if (updates.usageCount !== undefined) payload.usage_count = updates.usageCount;
+  if (updates.errorCount !== undefined) payload.error_count = updates.errorCount;
+  
+  const { data, error } = await supabase
+    .from("gemini_accounts")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    name: data.name,
+    apiKey: data.api_key,
+    status: data.status,
+    usageCount: data.usage_count,
+    errorCount: data.error_count
+  };
+}
+
+export async function dbDeleteGeminiKey(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from("gemini_accounts").delete().eq("id", id);
+  if (error) throw error;
+  return true;
+}
+
+/**
+ * Flow Accounts db functions
+ */
+export async function dbFetchAllFlowAccounts(): Promise<any[]> {
+  if (!supabase) return [];
+  try {
+    const { data: rows, error } = await supabase
+      .from("flow_accounts")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (rows || []).map(r => ({
+      id: r.id,
+      name: r.name,
+      apiKey: r.api_key,
+      status: r.status,
+      credit: r.credit || 100,
+      usageCount: r.usage_count || 0
+    }));
+  } catch (err) {
+    console.warn("⚠️ Notice: dbFetchAllFlowAccounts error:", err);
+    throw err;
+  }
+}
+
+export async function dbCreateFlowAccount(accData: any): Promise<any> {
+  if (!supabase) return null;
+  const payload = {
+    id: accData.id,
+    name: accData.name,
+    api_key: accData.apiKey,
+    status: accData.status || "Active",
+    credit: accData.credit || 100,
+    usage_count: accData.usageCount || 0
+  };
+  const { data, error } = await supabase
+    .from("flow_accounts")
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    name: data.name,
+    apiKey: data.api_key,
+    status: data.status,
+    credit: data.credit,
+    usageCount: data.usage_count
+  };
+}
+
+export async function dbUpdateFlowAccount(id: string, updates: Partial<any>): Promise<any> {
+  if (!supabase) return null;
+  const payload: any = {};
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.apiKey !== undefined) payload.api_key = updates.apiKey;
+  if (updates.status !== undefined) payload.status = updates.status;
+  if (updates.credit !== undefined) payload.credit = updates.credit;
+  if (updates.usageCount !== undefined) payload.usage_count = updates.usageCount;
+
+  const { data, error } = await supabase
+    .from("flow_accounts")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    name: data.name,
+    apiKey: data.api_key,
+    status: data.status,
+    credit: data.credit,
+    usageCount: data.usage_count
+  };
+}
+
+export async function dbDeleteFlowAccount(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from("flow_accounts").delete().eq("id", id);
+  if (error) throw error;
+  return true;
 }
