@@ -1,0 +1,6 @@
+{
+  "name": "AI Video Scripting & Automation SaaS",
+  "description": "SaaS platform for AI script creation, scene breakdown, and automated image and video rendering using Gemini and Flow Account Pools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
