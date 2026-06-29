@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS projects_supabase (
   scenes JSONB DEFAULT '[]'::jsonb,
   is_archived BOOLEAN DEFAULT FALSE,
   image_references JSONB DEFAULT '[]'::jsonb,
+  image_seed INT,
+  voice_id VARCHAR(100) DEFAULT 'EXAVITQu4vr4xnSDxMaL',
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -151,6 +153,33 @@ CREATE POLICY "Allow public update on flow_accounts" ON flow_accounts FOR UPDATE
 
 DROP POLICY IF EXISTS "Allow public delete on flow_accounts" ON flow_accounts;
 CREATE POLICY "Allow public delete on flow_accounts" ON flow_accounts FOR DELETE TO public USING (true);
+
+-- 8. Tạo bảng elevenlabs_accounts quản lý pool API key lồng tiếng
+CREATE TABLE IF NOT EXISTS elevenlabs_accounts (
+  id VARCHAR(100) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  api_key TEXT NOT NULL,
+  status VARCHAR(50) DEFAULT 'Active',
+  usage_count INT DEFAULT 0,
+  error_count INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Bật RLS cho elevenlabs_accounts
+ALTER TABLE elevenlabs_accounts ENABLE ROW LEVEL SECURITY;
+
+-- Tạo chính sách cho elevenlabs_accounts
+DROP POLICY IF EXISTS "Allow public select on elevenlabs_accounts" ON elevenlabs_accounts;
+CREATE POLICY "Allow public select on elevenlabs_accounts" ON elevenlabs_accounts FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Allow public insert on elevenlabs_accounts" ON elevenlabs_accounts;
+CREATE POLICY "Allow public insert on elevenlabs_accounts" ON elevenlabs_accounts FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public update on elevenlabs_accounts" ON elevenlabs_accounts;
+CREATE POLICY "Allow public update on elevenlabs_accounts" ON elevenlabs_accounts FOR UPDATE TO public USING (true);
+
+DROP POLICY IF EXISTS "Allow public delete on elevenlabs_accounts" ON elevenlabs_accounts;
+CREATE POLICY "Allow public delete on elevenlabs_accounts" ON elevenlabs_accounts FOR DELETE TO public USING (true);
 `;
 
 /**
@@ -210,7 +239,9 @@ function mapRowToProject(row: any): any {
     scriptVersionCount: row.script_version_count || 0,
     versions: row.versions || [],
     scenes: row.scenes || [],
-    isArchived: !!row.is_archived
+    isArchived: !!row.is_archived,
+    imageSeed: row.image_seed,
+    voiceId: row.voice_id || "EXAVITQu4vr4xnSDxMaL"
   };
 }
 
@@ -294,7 +325,9 @@ export async function dbCreateProject(projData: any): Promise<any> {
       versions: projData.versions || [],
       scenes: projData.scenes || [],
       is_archived: !!projData.isArchived,
-      image_references: projData.imageReferences || []
+      image_references: projData.imageReferences || [],
+      image_seed: projData.imageSeed || null,
+      voice_id: projData.voiceId || "EXAVITQu4vr4xnSDxMaL"
     };
 
     // Insert project
@@ -344,6 +377,8 @@ export async function dbUpdateProject(id: string, projData: Partial<any>): Promi
     if (projData.scenes !== undefined) updatePayload.scenes = projData.scenes;
     if (projData.isArchived !== undefined) updatePayload.is_archived = !!projData.isArchived;
     if (projData.imageReferences !== undefined) updatePayload.image_references = projData.imageReferences;
+    if (projData.imageSeed !== undefined) updatePayload.image_seed = projData.imageSeed;
+    if (projData.voiceId !== undefined) updatePayload.voice_id = projData.voiceId;
     
     updatePayload.updated_at = new Date().toISOString();
 
@@ -422,6 +457,48 @@ export async function dbUploadReferenceImage(
     return publicUrlData.publicUrl;
   } catch (err) {
     console.error("dbUploadReferenceImage Error:", err);
+    throw err;
+  }
+}
+
+/**
+ * Upload an audio file to scene_audio bucket
+ */
+export async function dbUploadSceneAudio(
+  fileName: string,
+  buffer: Buffer,
+  mimeType: string = "audio/mpeg"
+): Promise<string> {
+  if (!supabase) {
+    throw new Error("Supabase is not configured");
+  }
+
+  try {
+    const { data, error } = await supabase.storage
+      .from("scene_audio")
+      .upload(fileName, buffer, {
+        contentType: mimeType,
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Supabase Storage audio upload error:", error.message);
+      throw error;
+    }
+
+    // Retrieve public URL
+    const { data: publicUrlData } = supabase.storage
+      .from("scene_audio")
+      .getPublicUrl(data.path);
+
+    if (!publicUrlData || !publicUrlData.publicUrl) {
+      throw new Error("Failed to get public URL from Supabase storage for audio");
+    }
+
+    return publicUrlData.publicUrl;
+  } catch (err) {
+    console.error("dbUploadSceneAudio Error:", err);
     throw err;
   }
 }
@@ -615,6 +692,115 @@ export async function dbUpdateFlowAccount(id: string, updates: Partial<any>): Pr
 export async function dbDeleteFlowAccount(id: string): Promise<boolean> {
   if (!supabase) return false;
   const { error } = await supabase.from("flow_accounts").delete().eq("id", id);
+  if (error) throw error;
+  return true;
+}
+
+/**
+ * ElevenLabs Accounts db functions
+ */
+export async function dbFetchAllElevenLabsKeys(): Promise<any[]> {
+  if (!supabase) return [];
+  try {
+    const { data: rows, error } = await supabase
+      .from("elevenlabs_accounts")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (rows || []).map(r => ({
+      id: r.id,
+      name: r.name,
+      apiKey: r.api_key,
+      status: r.status,
+      usageCount: r.usage_count || 0,
+      errorCount: r.error_count || 0
+    }));
+  } catch (err) {
+    console.warn("⚠️ Notice: dbFetchAllElevenLabsKeys error:", err);
+    throw err;
+  }
+}
+
+export async function dbCreateElevenLabsKey(keyData: any): Promise<any> {
+  if (!supabase) return null;
+  const payload = {
+    id: keyData.id,
+    name: keyData.name,
+    api_key: keyData.apiKey,
+    status: keyData.status || "Active",
+    usage_count: keyData.usageCount || 0,
+    error_count: keyData.errorCount || 0
+  };
+  const { data, error } = await supabase
+    .from("elevenlabs_accounts")
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    name: data.name,
+    apiKey: data.api_key,
+    status: data.status,
+    usageCount: data.usage_count,
+    errorCount: data.error_count
+  };
+}
+
+export async function dbBulkCreateElevenLabsKeys(keysArray: any[]): Promise<any[]> {
+  if (!supabase) return [];
+  const payloads = keysArray.map(k => ({
+    id: k.id,
+    name: k.name,
+    api_key: k.apiKey,
+    status: k.status || "Active",
+    usage_count: k.usageCount || 0,
+    error_count: k.errorCount || 0
+  }));
+  const { data, error } = await supabase
+    .from("elevenlabs_accounts")
+    .insert(payloads)
+    .select();
+  if (error) throw error;
+  return (data || []).map(r => ({
+    id: r.id,
+    name: r.name,
+    apiKey: r.api_key,
+    status: r.status,
+    usageCount: r.usage_count,
+    errorCount: r.error_count
+  }));
+}
+
+export async function dbUpdateElevenLabsKey(id: string, updates: Partial<any>): Promise<any> {
+  if (!supabase) return null;
+  const payload: any = {};
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.apiKey !== undefined) payload.api_key = updates.apiKey;
+  if (updates.status !== undefined) payload.status = updates.status;
+  if (updates.usageCount !== undefined) payload.usage_count = updates.usageCount;
+  if (updates.errorCount !== undefined) payload.error_count = updates.errorCount;
+  
+  const { data, error } = await supabase
+    .from("elevenlabs_accounts")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    name: data.name,
+    apiKey: data.api_key,
+    status: data.status,
+    usageCount: data.usage_count,
+    errorCount: data.error_count
+  };
+}
+
+export async function dbDeleteElevenLabsKey(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from("elevenlabs_accounts").delete().eq("id", id);
   if (error) throw error;
   return true;
 }

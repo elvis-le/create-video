@@ -83,6 +83,7 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
   const [style, setStyle] = useState("Hiện đại & Tốc độ nhanh");
   const [expertRole, setExpertRole] = useState("Chuyên gia Marketing");
   const [cta, setCta] = useState("Mua ngay");
+  const [voiceId, setVoiceId] = useState("EXAVITQu4vr4xnSDxMaL");
   const [images, setImages] = useState<string[]>([
     "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300&auto=format&fit=crop&q=60"
   ]);
@@ -188,7 +189,8 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
       aiExpertRole: expertRole,
       cta,
       targetWordCount: targetWordCount || "300 - 500",
-      imageReferences: images
+      imageReferences: images,
+      voiceId
     });
   };
 
@@ -462,7 +464,7 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                 </select>
               </div>
 
-              <div className="col-span-2">
+              <div className="col-span-1">
                 <label className="block text-xs font-semibold text-slate-330 uppercase tracking-wider mb-1.5 font-mono">
                   {lang === "vi" ? "Nút CTA mong muốn *" : "CTA BUTTON TEXT *"}
                 </label>
@@ -481,6 +483,36 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                       {lang === "vi" ? opt.labelVi : opt.labelEn}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div className="col-span-1">
+                <label className="block text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1.5 font-mono font-bold">
+                  {lang === "vi" ? "Giọng Thuyết Minh AI *" : "AI Narrator Voice *"}
+                </label>
+                <select
+                  value={voiceId}
+                  onChange={(e) => setVoiceId(e.target.value)}
+                  className="w-full text-sm rounded-lg glass-input p-2.5 cursor-pointer border-emerald-500/20 hover:border-emerald-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 font-sans block text-emerald-300"
+                >
+                  <option value="EXAVITQu4vr4xnSDxMaL" className="bg-[#0a0f18] text-white">
+                    {lang === "vi" ? "Bella (Giọng Nữ UGC Thân thiện)" : "Bella (Friendly Female UGC)"}
+                  </option>
+                  <option value="21m00Tcm4TlvDq8ikWAM" className="bg-[#0a0f18] text-white">
+                    {lang === "vi" ? "Rachel (Giọng Nữ Trẻ trung Review)" : "Rachel (Young Female Reviewer)"}
+                  </option>
+                  <option value="ErXwobaYiN019vkySvjV" className="bg-[#0a0f18] text-white">
+                    {lang === "vi" ? "Antoni (Giọng Nam Trầm ấm Thuyết trình)" : "Antoni (Deep Male Presenter)"}
+                  </option>
+                  <option value="piTKgcLEGmPEeCEmJhbb" className="bg-[#0a0f18] text-white">
+                    {lang === "vi" ? "Nicole (Giọng Nữ Năng động)" : "Nicole (Energetic Female)"}
+                  </option>
+                  <option value="pNInz6obpgq9S3JGC85j" className="bg-[#0a0f18] text-white">
+                    {lang === "vi" ? "Adam (Giọng Nam Trung niên Cuốn hút)" : "Adam (Engaging Deep Male)"}
+                  </option>
+                  <option value="z9fAnlkFmtZre7kurN1B" className="bg-[#0a0f18] text-white">
+                    {lang === "vi" ? "Glinda (Giọng Nữ Nhẹ nhàng)" : "Glinda (Gentle Female)"}
+                  </option>
                 </select>
               </div>
             </div>

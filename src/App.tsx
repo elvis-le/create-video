@@ -10,7 +10,7 @@ import ScenesBreakdown from "./components/ScenesBreakdown";
 import ImageVideoGenerator from "./components/ImageVideoGenerator";
 import AdminDashboard from "./components/AdminDashboard";
 import TechStackBoilerplate from "./components/TechStackBoilerplate";
-import { Project, GeminiKey, FlowAccount, QueueTask, AIModelSettings, LogEntry, IndustryTemplate, SmartPreset, Scene, SupabaseStatus } from "./types";
+import { Project, GeminiKey, FlowAccount, ElevenLabsKey, QueueTask, AIModelSettings, LogEntry, IndustryTemplate, SmartPreset, Scene, SupabaseStatus } from "./types";
 
 export default function App() {
   const [lang, setLang] = useState<"vi" | "en">("vi");
@@ -21,6 +21,7 @@ export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [geminiKeys, setGeminiKeys] = useState<GeminiKey[]>([]);
   const [flowAccounts, setFlowAccounts] = useState<FlowAccount[]>([]);
+  const [elevenlabsKeys, setElevenlabsKeys] = useState<ElevenLabsKey[]>([]);
   const [queueTasks, setQueueTasks] = useState<QueueTask[]>([]);
   const [modelSettings, setModelSettings] = useState<AIModelSettings | null>(null);
   const [industries, setIndustries] = useState<IndustryTemplate[]>([]);
@@ -60,6 +61,10 @@ export default function App() {
       const resFlow = await fetch("/api/keys/flow");
       const dataFlow = await resFlow.json();
       setFlowAccounts(dataFlow);
+
+      const resElevenLabs = await fetch("/api/keys/elevenlabs");
+      const dataElevenLabs = await resElevenLabs.json();
+      setElevenlabsKeys(dataElevenLabs);
 
       const resTasks = await fetch("/api/queue/tasks");
       const dataTasks = await resTasks.json();
@@ -147,7 +152,7 @@ export default function App() {
     }
   };
 
-  const handleTriggerTask = async (projId: string, type: "Script" | "Scenes" | "ImageGen" | "VideoGen") => {
+  const handleTriggerTask = async (projId: string, type: "Script" | "Scenes" | "ImageGen" | "VideoGen" | "VoiceGen") => {
     try {
       const res = await fetch(`/api/projects/${projId}/generate/${type}`, {
         method: "POST"
@@ -330,6 +335,60 @@ export default function App() {
     try {
       await fetch(`/api/keys/flow/${id}`, { method: "DELETE" });
       setFlowAccounts(flowAccounts.filter(a => a.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddElevenLabsKey = async (name: string, apiKey: string) => {
+    try {
+      const res = await fetch("/api/keys/elevenlabs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, apiKey })
+      });
+      const nKey = await res.json();
+      setElevenlabsKeys([...elevenlabsKeys, nKey]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddElevenLabsKeysBulk = async (keys: { name: string; apiKey: string }[]) => {
+    try {
+      const res = await fetch("/api/keys/elevenlabs/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keys })
+      });
+      const newKeys = await res.json();
+      setElevenlabsKeys([...elevenlabsKeys, ...newKeys]);
+      return newKeys.length;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const handleToggleElevenLabsKey = async (id: string, currentStatus: string) => {
+    try {
+      const targetStatus = currentStatus === "Active" ? "Inactive" : "Active";
+      const res = await fetch(`/api/keys/elevenlabs/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: targetStatus })
+      });
+      const updated = await res.json();
+      setElevenlabsKeys(elevenlabsKeys.map(k => k.id === id ? updated : k));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteElevenLabsKey = async (id: string) => {
+    try {
+      await fetch(`/api/keys/elevenlabs/${id}`, { method: "DELETE" });
+      setElevenlabsKeys(elevenlabsKeys.filter(k => k.id !== id));
     } catch (err) {
       console.error(err);
     }
@@ -614,6 +673,7 @@ export default function App() {
             logs={activeTaskLogs}
             onTriggerImageGen={() => handleTriggerTask(activeProject.id, "ImageGen")}
             onTriggerVideoGen={() => handleTriggerTask(activeProject.id, "VideoGen")}
+            onTriggerVoiceGen={() => handleTriggerTask(activeProject.id, "VoiceGen")}
             onUpdateSceneMedia={handleUpdateSceneMedia}
             isLoading={isTaskRunning}
           />
@@ -624,6 +684,7 @@ export default function App() {
             lang={lang}
             geminiKeys={geminiKeys}
             flowAccounts={flowAccounts}
+            elevenlabsKeys={elevenlabsKeys}
             queueTasks={queueTasks}
             modelSettings={modelSettings}
             onAddGeminiKey={handleAddGeminiKey}
@@ -633,6 +694,10 @@ export default function App() {
             onAddFlowAccount={handleAddFlowAccount}
             onUpdateFlowAccountCredit={handleUpdateFlowAccountCredit}
             onDeleteFlowAccount={handleDeleteFlowAccount}
+            onAddElevenLabsKey={handleAddElevenLabsKey}
+            onAddElevenLabsKeysBulk={handleAddElevenLabsKeysBulk}
+            onToggleElevenLabsKey={handleToggleElevenLabsKey}
+            onDeleteElevenLabsKey={handleDeleteElevenLabsKey}
             onUpdateModelSettings={handleUpdateModelSettings}
             onClearQueueLogs={handleClearQueueLogs}
           />

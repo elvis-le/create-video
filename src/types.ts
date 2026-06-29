@@ -57,6 +57,18 @@ export interface Project {
   versions: ScriptVersion[];
   scenes: Scene[];
   isArchived: boolean;
+  imageSeed?: number;
+  voiceId?: string;
+}
+
+export interface ElevenLabsKey {
+  id: string;
+  name: string;
+  apiKey: string;
+  status: "Active" | "Exhausted" | "Error";
+  usageCount: number;
+  errorCount: number;
+  lastUsedTime?: string;
 }
 
 export interface GeminiKey {
@@ -79,7 +91,7 @@ export interface FlowAccount {
   lastUsedTime?: string;
 }
 
-export type TaskType = "Script" | "Scenes" | "ImageGen" | "VideoGen" | "All";
+export type TaskType = "Script" | "Scenes" | "ImageGen" | "VideoGen" | "VoiceGen" | "All";
 
 export interface LogEntry {
   timestamp: string;

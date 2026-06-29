@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { 
   Image, Video, Sparkles, Download, RefreshCw, Layers, Check, 
-  Play, Pause, HardDrive, Cpu, AlertTriangle, Eye 
+  Play, Pause, HardDrive, Cpu, AlertTriangle, Eye, Mic
 } from "lucide-react";
 import { Project, Scene, LogEntry } from "../types";
 
@@ -11,14 +11,15 @@ interface Props {
   logs: LogEntry[];
   onTriggerImageGen: () => Promise<void>;
   onTriggerVideoGen: () => Promise<void>;
+  onTriggerVoiceGen: () => Promise<void>;
   onUpdateSceneMedia: (sceneId: string, type: "image" | "video", url: string) => Promise<void>;
   isLoading: boolean;
 }
 
 export default function ImageVideoGenerator({ 
-  lang, project, logs, onTriggerImageGen, onTriggerVideoGen, onUpdateSceneMedia, isLoading 
+  lang, project, logs, onTriggerImageGen, onTriggerVideoGen, onTriggerVoiceGen, onUpdateSceneMedia, isLoading 
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"image" | "video">("image");
+  const [activeTab, setActiveTab] = useState<"image" | "video" | "voice">("image");
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   const triggerSingleSceneRegen = (scId: string, type: "image" | "video") => {
@@ -55,7 +56,7 @@ export default function ImageVideoGenerator({
   return (
     <div className="space-y-6 relative z-10 font-sans text-slate-200">
       {/* Tab toggle */}
-      <div className="bg-white/5 backdrop-blur-md border border-white/10 p-2 rounded-xl shadow-xl flex max-w-md mx-auto">
+      <div className="bg-white/5 backdrop-blur-md border border-white/10 p-2 rounded-xl shadow-xl flex max-w-2xl mx-auto gap-2">
         <button
           onClick={() => setActiveTab("image")}
           className={`flex-1 py-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === "image" ? "bg-[#34b1b3] text-white shadow-lg shadow-[#34b1b3]/25" : "text-slate-400 hover:text-white"}`}
@@ -69,6 +70,13 @@ export default function ImageVideoGenerator({
         >
           <Video className="w-4 h-4 text-purple-400" />
           <span>{lang === "vi" ? "2. TẠO HOẠT ẢNH VIDEO" : "2. SCENE VIDEO RENDERER"}</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("voice")}
+          className={`flex-1 py-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === "voice" ? "bg-[#34b1b3] text-white shadow-lg shadow-[#34b1b3]/25" : "text-slate-400 hover:text-white"}`}
+        >
+          <Mic className="w-4 h-4 text-emerald-400" />
+          <span>{lang === "vi" ? "3. LỒNG TIẾNG ELEVENLABS" : "3. ELEVENLABS VOICEOVER"}</span>
         </button>
       </div>
 
@@ -189,7 +197,7 @@ export default function ImageVideoGenerator({
                 </div>
               </div>
             </div>
-          ) : (
+          ) : activeTab === "video" ? (
             /* ==========================================
                Tab Content: VIDEO GENERATOR
                ========================================== */
@@ -287,6 +295,101 @@ export default function ImageVideoGenerator({
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>{lang === "vi" ? "Đồng loạt Tạo lại Video" : "Render All Videos"}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* ==========================================
+               Tab Content: ELEVENLABS VOICE GENERATOR
+               ========================================== */
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {project.scenes.map((sc) => (
+                  <div key={sc.id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl shadow-xl overflow-hidden flex flex-col h-72">
+                    <div className="bg-white/[0.03] px-3 py-2 flex justify-between items-center border-b border-white/10">
+                      <span className="text-[10px] font-bold text-white font-mono">
+                        🎬 {lang === "vi" ? `Phân Cảnh ${sc.sceneNumber}` : `Scene ${sc.sceneNumber}`}
+                      </span>
+                      {sc.voiceAudioUrl && (
+                        <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Ready</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Audio Player Holder */}
+                    <div className="flex-1 bg-black/40 p-4 flex flex-col justify-between overflow-hidden text-left">
+                      <div className="flex-1 space-y-2 overflow-y-auto pr-1">
+                        <span className="text-[10px] uppercase font-bold text-[#34b1b3] tracking-wide font-mono block">
+                          {lang === "vi" ? "Lời thoại lồng tiếng:" : "Voiceover Script:"}
+                        </span>
+                        <p className="text-xs text-slate-300 italic leading-relaxed">
+                          "{lang === "vi" ? sc.voiceScriptVi : sc.voiceScriptEn}"
+                        </p>
+                      </div>
+
+                      {sc.voiceAudioUrl ? (
+                        <div className="mt-3 pt-3 border-t border-white/5">
+                          <audio
+                            src={sc.voiceAudioUrl}
+                            controls
+                            className="w-full h-8 accent-[#34b1b3]"
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-center p-4 text-slate-500 border-t border-white/5 mt-3">
+                          <Mic className="w-6 h-6 mx-auto mb-1 opacity-50 text-emerald-400 animate-pulse" />
+                          <span className="text-[10px] block font-mono">
+                            {lang === "vi" ? "Chưa tạo file âm thanh lồng tiếng" : "No audio voiceover generated"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-3 bg-white/[0.02] border-t border-white/10 flex justify-between items-center">
+                      <span className="text-[10px] text-slate-400 truncate max-w-[150px] block">
+                        <strong>Default Voice:</strong> Bella (UGC Female)
+                      </span>
+                      <div className="flex gap-1.5">
+                        {sc.voiceAudioUrl && (
+                          <button
+                            onClick={() => downloadSceneAsset(sc.voiceAudioUrl!, "audio")}
+                            className="p-1.5 px-2 border border-white/10 hover:bg-white/10 text-white rounded cursor-pointer transition-all"
+                            title={lang === "vi" ? "Tải giọng đọc" : "Download Audio"}
+                          >
+                            <Download className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Batch Voice bottom action */}
+              <div className="bg-[#34b1b3]/10 border border-[#34b1b3]/25 p-5 rounded-xl flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-white block">
+                    🎙️ {lang === "vi" ? "Tạo Giọng Thuyết Minh Tự Động ElevenLabs" : "Automated ElevenLabs Voiceover"}
+                  </span>
+                  <span className="text-[11px] text-slate-300 block mt-0.5">
+                    {lang === "vi" 
+                      ? "Chạy lồng tiếng cho toàn bộ kịch bản sử dụng mô hình multilingual siêu truyền cảm của ElevenLabs." 
+                      : "Generate standard studio quality voiceovers matching your story script automatically."}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={onTriggerVoiceGen}
+                    disabled={isLoading}
+                    className="flex items-center gap-1.5 bg-[#34b1b3] hover:bg-[#2db3b5] text-white font-bold text-xs cursor-pointer rounded-lg px-5 py-2.5 shadow-lg shadow-[#34b1b3]/25 transition-all"
+                  >
+                    <Mic className="w-3.5 h-3.5" />
+                    <span>{lang === "vi" ? "Đồng loạt Tạo Giọng Đọc" : "Generate All Voiceovers"}</span>
                   </button>
                 </div>
               </div>

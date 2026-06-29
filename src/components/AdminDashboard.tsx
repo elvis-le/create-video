@@ -4,12 +4,13 @@ import {
   Trash2, Plus, RefreshCw, Key, HelpCircle, HardDrive, CheckCircle2,
   XCircle, Zap, Terminal, Edit3, Coins
 } from "lucide-react";
-import { GeminiKey, FlowAccount, QueueTask, AIModelSettings } from "../types";
+import { GeminiKey, FlowAccount, ElevenLabsKey, QueueTask, AIModelSettings } from "../types";
 
 interface Props {
   lang: "vi" | "en";
   geminiKeys: GeminiKey[];
   flowAccounts: FlowAccount[];
+  elevenlabsKeys: ElevenLabsKey[];
   queueTasks: QueueTask[];
   modelSettings: AIModelSettings;
   onAddGeminiKey: (name: string, key: string) => Promise<void>;
@@ -19,14 +20,19 @@ interface Props {
   onAddFlowAccount: (name: string, key: string, credit: number) => Promise<void>;
   onUpdateFlowAccountCredit: (id: string, credit: number) => Promise<void>;
   onDeleteFlowAccount: (id: string) => Promise<void>;
+  onAddElevenLabsKey: (name: string, key: string) => Promise<void>;
+  onAddElevenLabsKeysBulk: (keys: { name: string; apiKey: string }[]) => Promise<number>;
+  onToggleElevenLabsKey: (id: string, currentStatus: string) => Promise<void>;
+  onDeleteElevenLabsKey: (id: string) => Promise<void>;
   onUpdateModelSettings: (settings: Partial<AIModelSettings>) => Promise<void>;
   onClearQueueLogs: () => void;
 }
 
 export default function AdminDashboard({
-  lang, geminiKeys, flowAccounts, queueTasks, modelSettings,
+  lang, geminiKeys, flowAccounts, elevenlabsKeys, queueTasks, modelSettings,
   onAddGeminiKey, onAddGeminiKeysBulk, onToggleGeminiKey, onDeleteGeminiKey,
   onAddFlowAccount, onUpdateFlowAccountCredit, onDeleteFlowAccount,
+  onAddElevenLabsKey, onAddElevenLabsKeysBulk, onToggleElevenLabsKey, onDeleteElevenLabsKey,
   onUpdateModelSettings, onClearQueueLogs
 }: Props) {
   const [activeTab, setActiveTab] = useState<"api-pool" | "models" | "queue">("api-pool");
@@ -39,8 +45,12 @@ export default function AdminDashboard({
   const [newFlowValue, setNewFlowValue] = useState("");
   const [newFlowCredit, setNewFlowCredit] = useState(100);
 
+  const [newElName, setNewElName] = useState("");
+  const [newElValue, setNewElValue] = useState("");
+
   // Bulk add modal states
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkTarget, setBulkTarget] = useState<"gemini" | "elevenlabs">("gemini");
   const [bulkKeysText, setBulkKeysText] = useState("");
   const [bulkToast, setBulkToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
@@ -64,12 +74,19 @@ export default function AdminDashboard({
 
     // Build array of objects
     const keysToInsert = uniqueKeys.map((keyVal, idx) => ({
-      name: `Bulk Key #${idx + 1} (${new Date().toLocaleDateString()})`,
+      name: bulkTarget === "gemini" 
+        ? `Bulk Gemini Key #${idx + 1} (${new Date().toLocaleDateString()})`
+        : `Bulk ElevenLabs Key #${idx + 1} (${new Date().toLocaleDateString()})`,
       apiKey: keyVal
     }));
 
     try {
-      const addedCount = await onAddGeminiKeysBulk(keysToInsert);
+      let addedCount = 0;
+      if (bulkTarget === "gemini") {
+        addedCount = await onAddGeminiKeysBulk(keysToInsert);
+      } else {
+        addedCount = await onAddElevenLabsKeysBulk(keysToInsert);
+      }
       
       setBulkToast({
         message: lang === "vi" 
@@ -97,6 +114,7 @@ export default function AdminDashboard({
   const activeKeysCount = geminiKeys.filter(k => k.status === "Active").length;
   const blockedKeysCount = geminiKeys.filter(k => k.status === "Blocked").length;
   const totalFlowCredits = flowAccounts.reduce((acc, f) => acc + f.credit, 0);
+  const activeElKeysCount = elevenlabsKeys.filter(k => k.status === "Active").length;
 
   const handleSubmitKey = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +133,14 @@ export default function AdminDashboard({
     setNewFlowCredit(100);
   };
 
+  const handleSubmitElevenLabs = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newElName || !newElValue) return;
+    onAddElevenLabsKey(newElName, newElValue);
+    setNewElName("");
+    setNewElValue("");
+  };
+
   return (
     <div className="space-y-6 relative z-10 font-sans text-slate-200">
       {/* Overview stats for admins */}
@@ -125,10 +151,12 @@ export default function AdminDashboard({
           </div>
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block font-mono">
-              Gemini Active / Blocked
+              API Pools (Gemini / 11L)
             </span>
-            <h4 className="text-lg font-bold text-white font-mono mt-0.5">
-              {activeKeysCount} <span className="text-white/20 font-normal">|</span> <span className="text-red-400">{blockedKeysCount}</span>
+            <h4 className="text-base font-bold text-white font-mono mt-0.5 flex items-center gap-2">
+              <span>G: <span className="text-[#34b1b3]">{activeKeysCount}</span></span>
+              <span className="text-white/20 font-normal">|</span>
+              <span>11L: <span className="text-emerald-400">{activeElKeysCount}</span></span>
             </h4>
           </div>
         </div>
@@ -224,9 +252,9 @@ export default function AdminDashboard({
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Gemini Key Pool List */}
-          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-5 shadow-xl space-y-4">
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-5 shadow-xl space-y-4 col-span-1">
             <div className="flex justify-between items-center pb-2 border-b border-white/10">
               <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-display">
                 <Key className="w-4 h-4 text-[#34b1b3]" />
@@ -241,7 +269,7 @@ export default function AdminDashboard({
                   <div>
                     <span className="font-bold text-white block">{key.name}</span>
                     <span className="font-mono text-[10px] text-slate-400 block mt-0.5">
-                      Key: ••••••••••{key.apiKey.substring(key.apiKey.length - 8)}
+                      Key: ••••••••••{key.apiKey.substring(Math.max(0, key.apiKey.length - 8))}
                     </span>
                     <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1 font-mono">
                       <span>{lang === "vi" ? "Dùng" : "Calls"}: <strong className="text-white">{key.usageCount}</strong></span>
@@ -300,8 +328,103 @@ export default function AdminDashboard({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsBulkModalOpen(true)}
+                  onClick={() => {
+                    setBulkTarget("gemini");
+                    setIsBulkModalOpen(true);
+                  }}
                   className="bg-transparent hover:bg-white/5 text-[#34b1b3] border border-[#34b1b3]/50 hover:border-[#34b1b3] text-xs font-bold rounded py-2 transition-all cursor-pointer"
+                >
+                  {lang === "vi" ? "Thêm hàng loạt ⚡" : "Bulk Add ⚡"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* ElevenLabs Key Pool List */}
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-5 shadow-xl space-y-4 col-span-1">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-display">
+                <Key className="w-4 h-4 text-emerald-400" />
+                {lang === "vi" ? "Hộp Kênh Khóa API ElevenLabs" : "ElevenLabs Accounts Pool"}
+              </span>
+            </div>
+
+            {/* List */}
+            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+              {elevenlabsKeys.map((key) => (
+                <div key={key.id} className="bg-black/20 rounded-lg p-3 border border-white/5 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-white block">{key.name}</span>
+                    <span className="font-mono text-[10px] text-slate-400 block mt-0.5">
+                      Key: ••••••••••{key.apiKey.substring(Math.max(0, key.apiKey.length - 8))}
+                    </span>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1 font-mono">
+                      <span>{lang === "vi" ? "Dùng" : "Calls"}: <strong className="text-white">{key.usageCount || 0}</strong></span>
+                      <span>•</span>
+                      <span className="text-red-400">{lang === "vi" ? "Lỗi" : "Error"}: <strong className="text-red-400 font-bold">{key.errorCount || 0}</strong></span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onToggleElevenLabsKey(key.id, key.status)}
+                      className={`text-[10px] font-bold px-2 py-1 rounded border transition-all cursor-pointer ${key.status === "Active" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-slate-400 border-white/10"}`}
+                    >
+                      {key.status === "Active" ? (lang === "vi" ? "Bật" : "Active") : (lang === "vi" ? "Tắt" : "Inactive")}
+                    </button>
+                    <button
+                      onClick={() => onDeleteElevenLabsKey(key.id)}
+                      className="p-1.5 hover:bg-white/10 rounded cursor-pointer text-slate-400 hover:text-red-400 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-slate-400 hover:text-red-400" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {elevenlabsKeys.length === 0 && (
+                <div className="text-center text-slate-500 p-8 font-mono text-[10px]">
+                  {lang === "vi" ? "Chưa có API Key ElevenLabs nào." : "No ElevenLabs API Keys found."}
+                </div>
+              )}
+            </div>
+
+            {/* Add form */}
+            <form onSubmit={handleSubmitElevenLabs} className="bg-black/20 border border-white/5 rounded-lg p-3.5 space-y-2.5">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block font-mono">
+                + {lang === "vi" ? "Bổ sung API Key ElevenLabs mới" : "Inject New ElevenLabs Key"}
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <input
+                  type="text"
+                  required
+                  placeholder={lang === "vi" ? "Tên đại diện..." : "Identifier name..."}
+                  value={newElName}
+                  onChange={(e) => setNewElName(e.target.value)}
+                  className="rounded p-2.5 bg-black/30 border border-white/10 focus:outline-none focus:border-emerald-500 text-white"
+                />
+                <input
+                  type="password"
+                  required
+                  placeholder="eleven_key..."
+                  value={newElValue}
+                  onChange={(e) => setNewElValue(e.target.value)}
+                  className="rounded p-2.5 bg-black/30 border border-white/10 focus:outline-none focus:border-emerald-500 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="submit"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded py-2 transition-all cursor-pointer shadow-md shadow-emerald-500/25"
+                >
+                  {lang === "vi" ? "Đưa vào hồ xoay" : "Save Single"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBulkTarget("elevenlabs");
+                    setIsBulkModalOpen(true);
+                  }}
+                  className="bg-transparent hover:bg-white/5 text-emerald-400 border border-emerald-500/50 hover:border-emerald-400 text-xs font-bold rounded py-2 transition-all cursor-pointer"
                 >
                   {lang === "vi" ? "Thêm hàng loạt ⚡" : "Bulk Add ⚡"}
                 </button>
