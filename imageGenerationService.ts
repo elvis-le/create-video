@@ -28,31 +28,39 @@ export async function generateImagen3Image(prompt: string, apiKey: string, seed?
     }
   };
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
 
-  const responseData = await response.json();
+    const responseData = await response.json();
 
-  if (!response.ok) {
-    const errorMsg = responseData.error?.message || `HTTP error ${response.status}`;
-    throw new Error(errorMsg);
+    if (!response.ok) {
+      // Wrap as a response error to support the specified error structures
+      const responseError: any = new Error(responseData.error?.message || `HTTP error ${response.status}`);
+      responseError.response = { data: responseData };
+      throw responseError;
+    }
+
+    // Google Imagen returns base64 inside predictions array
+    const base64Data = responseData.predictions?.[0]?.bytesBase64Encoded || 
+                       responseData.predictions?.[0]?.bytes || 
+                       responseData.predictions?.[0]?.image?.imageBytes;
+
+    if (!base64Data) {
+      throw new Error("Không tìm thấy dữ liệu ảnh Base64 trong kết quả trả về từ Gemini Imagen API.");
+    }
+
+    return base64Data;
+  } catch (error: any) {
+    console.error("CHI TIẾT LỖI GEMINI IMAGE:", error.response?.data || error);
+    const deepErrorMessage = error.response?.data?.error?.message || error.message || "Lỗi tạo ảnh không xác định";
+    throw new Error(deepErrorMessage);
   }
-
-  // Google Imagen returns base64 inside predictions array
-  const base64Data = responseData.predictions?.[0]?.bytesBase64Encoded || 
-                     responseData.predictions?.[0]?.bytes || 
-                     responseData.predictions?.[0]?.image?.imageBytes;
-
-  if (!base64Data) {
-    throw new Error("Không tìm thấy dữ liệu ảnh Base64 trong kết quả trả về từ Gemini Imagen API.");
-  }
-
-  return base64Data;
 }
 
 /**
