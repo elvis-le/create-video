@@ -12,7 +12,7 @@ import { Scene, GeminiKey, LogEntry, Project } from "./src/types.js";
  * @param seed Optional random seed integer for style consistency
  */
 export async function generateImagen3Image(prompt: string, apiKey: string, seed?: number): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`;
 
   const payload = {
     instances: [
@@ -23,7 +23,6 @@ export async function generateImagen3Image(prompt: string, apiKey: string, seed?
     parameters: {
       sampleCount: 1,
       aspectRatio: "9:16",
-      outputMimeType: "image/jpeg",
       ...(seed !== undefined ? { seed } : {})
     }
   };
@@ -47,9 +46,7 @@ export async function generateImagen3Image(prompt: string, apiKey: string, seed?
     }
 
     // Google Imagen returns base64 inside predictions array
-    const base64Data = responseData.predictions?.[0]?.bytesBase64Encoded || 
-                       responseData.predictions?.[0]?.bytes || 
-                       responseData.predictions?.[0]?.image?.imageBytes;
+    const base64Data = responseData.predictions?.[0]?.bytesBase64Encoded;
 
     if (!base64Data) {
       throw new Error("Không tìm thấy dữ liệu ảnh Base64 trong kết quả trả về từ Gemini Imagen API.");
