@@ -6,23 +6,89 @@ import {
 import { Scene, GeminiKey, LogEntry, Project } from "./src/types.js";
 
 /**
- * Call Google Imagen 3 REST API to generate an image
+ * Helper to download reference images and convert to base64
+ */
+async function getProjectImageReferencesBase64(imageReferences: string[]): Promise<string[]> {
+  if (!imageReferences || imageReferences.length === 0) {
+    return [];
+  }
+
+  const base64List: string[] = [];
+  for (const ref of imageReferences) {
+    if (!ref) continue;
+
+    if (ref.startsWith("data:image/")) {
+      // Extract from Data URL
+      const matches = ref.match(/^data:image\/[a-zA-Z+.-]+;base64,(.+)$/);
+      if (matches && matches[1]) {
+        base64List.push(matches[1]);
+      }
+    } else if (ref.startsWith("http://") || ref.startsWith("https://")) {
+      // Download and convert to base64
+      try {
+        const response = await fetch(ref);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          base64List.push(buffer.toString("base64"));
+        }
+      } catch (err) {
+        console.error(`Lỗi tải ảnh tham chiếu từ URL ${ref}:`, err);
+      }
+    } else {
+      // Assume it's a raw base64 string
+      if (ref.length > 50 && !ref.includes(" ") && !ref.includes("/")) {
+        base64List.push(ref);
+      }
+    }
+  }
+  return base64List;
+}
+
+/**
+ * Call Google gemini-2.5-flash-image API to generate an image
  * @param prompt English prompt for the image
  * @param apiKey Gemini API key to use
  * @param seed Optional random seed integer for style consistency
+ * @param referenceImagesBase64 Optional array of product reference images in base64 format
  */
-export async function generateImagen3Image(prompt: string, apiKey: string, seed?: number): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`;
+export async function generateImagen3Image(
+  prompt: string, 
+  apiKey: string, 
+  seed?: number, 
+  referenceImagesBase64: string[] = []
+): Promise<string> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+
+  const parts: any[] = [];
+
+  // Add reference images to the multimodal payload if present
+  if (referenceImagesBase64 && referenceImagesBase64.length > 0) {
+    for (const b64 of referenceImagesBase64) {
+      parts.push({
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: b64
+        }
+      });
+    }
+  }
+
+  // Add prompt part and let AI know this is an image generation task matching references
+  parts.push({
+    text: `Generate a high-quality scene image in 9:16 portrait orientation. Maintain visual consistency with the provided reference images. Prompt: ${prompt}`
+  });
 
   const payload = {
-    instances: [
+    contents: [
       {
-        prompt: prompt
+        parts: parts
       }
     ],
-    parameters: {
-      sampleCount: 1,
-      aspectRatio: "9:16",
+    generationConfig: {
+      imageConfig: {
+        aspectRatio: "9:16"
+      },
       ...(seed !== undefined ? { seed } : {})
     }
   };
@@ -31,7 +97,8 @@ export async function generateImagen3Image(prompt: string, apiKey: string, seed?
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": "aistudio-build"
       },
       body: JSON.stringify(payload)
     });
@@ -45,11 +112,19 @@ export async function generateImagen3Image(prompt: string, apiKey: string, seed?
       throw responseError;
     }
 
-    // Google Imagen returns base64 inside predictions array
-    const base64Data = responseData.predictions?.[0]?.bytesBase64Encoded;
+    // Extract Base64 from generateContent parts
+    let base64Data = "";
+    if (responseData.candidates?.[0]?.content?.parts) {
+      for (const part of responseData.candidates[0].content.parts) {
+        if (part.inlineData?.data) {
+          base64Data = part.inlineData.data;
+          break;
+        }
+      }
+    }
 
     if (!base64Data) {
-      throw new Error("Không tìm thấy dữ liệu ảnh Base64 trong kết quả trả về từ Gemini Imagen API.");
+      throw new Error("Không tìm thấy dữ liệu ảnh Base64 trong kết quả trả về từ Gemini API (gemini-2.5-flash-image).");
     }
 
     return base64Data;
@@ -119,7 +194,7 @@ export async function generateImagesForProjectScenes(
   logCallback({
     timestamp: new Date().toLocaleTimeString(),
     level: "info",
-    message: `🎨 Khởi động tiến trình dệt ảnh bằng Imagen 3 cho ${project.scenes.length} phân cảnh.`
+    message: `🎨 Khởi động tiến trình dệt ảnh bằng gemini-2.5-flash-image cho ${project.scenes.length} phân cảnh.`
   });
 
   // Keep track of active keys locally for rotation within this job
@@ -163,8 +238,19 @@ export async function generateImagesForProjectScenes(
       });
 
       try {
-        // 1. Generate via REST API
-        const base64Data = await generateImagen3Image(scenePrompt, currentKey.apiKey, project.imageSeed);
+        // Retrieve and convert reference images to base64
+        const referenceImagesBase64 = await getProjectImageReferencesBase64(project.imageReferences || []);
+        
+        if (referenceImagesBase64.length > 0) {
+          logCallback({
+            timestamp: new Date().toLocaleTimeString(),
+            level: "info",
+            message: `📸 Tìm thấy ${referenceImagesBase64.length} ảnh sản phẩm mẫu. Đang gửi kèm dưới dạng đa phương thức (Multimodal) làm tài liệu tham khảo...`
+          });
+        }
+
+        // 1. Generate via REST API using gemini-2.5-flash-image
+        const base64Data = await generateImagen3Image(scenePrompt, currentKey.apiKey, project.imageSeed, referenceImagesBase64);
 
         // 2. Convert base64 to Buffer
         const imageBuffer = Buffer.from(base64Data, "base64");
