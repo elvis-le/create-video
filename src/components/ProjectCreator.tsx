@@ -64,6 +64,117 @@ export const categoryOptions = [
   { value: "Sự kiện / Recap", labelVi: "Sự kiện / Recap", labelEn: "Event / Show Recap Presentation" },
 ];
 
+export const entertainmentPresets: SmartPreset[] = [
+  {
+    id: "ent-pre-1",
+    nameVi: "Kể chuyện Hài hước / Meme (Viral Comedy)",
+    nameEn: "Viral Comedy / Meme Storytelling",
+    goalVi: "Giải trí & Gây cười (Entertain & Humor)",
+    goalEn: "Entertain & Humor",
+    toneVi: "Hài hước & Châm biếm (Sarcastic & Funny)",
+    toneEn: "Sarcastic & Funny",
+    styleVi: "3d-pixar",
+    styleEn: "3d-pixar",
+    expertRoleVi: "Đạo diễn phim hài (Comedy Director)",
+    expertRoleEn: "Comedy Director",
+    ctaVi: "Thả tim & Bình luận ý kiến",
+    ctaEn: "Like & Comment thoughts"
+  },
+  {
+    id: "ent-pre-2",
+    nameVi: "Phim Ngắn Hoạt Hình 3D (3D Short Film)",
+    nameEn: "3D Short Film",
+    goalVi: "Giữ chân người xem đến cuối (High Retention)",
+    goalEn: "High Retention",
+    toneVi: "Kể chuyện mượt mà (Narrative & Engaging)",
+    toneEn: "Narrative & Engaging",
+    styleVi: "3d-pixar",
+    styleEn: "3d-pixar",
+    expertRoleVi: "Nhà biên kịch phim hoạt hình (Animation Scriptwriter)",
+    expertRoleEn: "Animation Scriptwriter",
+    ctaVi: "Đăng ký kênh / Follow ngay",
+    ctaEn: "Subscribe / Follow Now"
+  },
+  {
+    id: "ent-pre-3",
+    nameVi: "Kể chuyện Cảm động / Chữa lành (Healing Story)",
+    nameEn: "Healing Story",
+    goalVi: "Truyền cảm hứng / Lấy nước mắt (Inspire & Emotional)",
+    goalEn: "Inspire & Emotional",
+    toneVi: "Kể chuyện mượt mà (Narrative & Engaging)",
+    toneEn: "Narrative & Engaging",
+    styleVi: "2d-anime",
+    styleEn: "2d-anime",
+    expertRoleVi: "Người kể chuyện cổ tích (Fairy Tale Teller)",
+    expertRoleEn: "Fairy Tale Teller",
+    ctaVi: "Đón xem phần 2 nhé!",
+    ctaEn: "Stay tuned for Part 2!"
+  },
+  {
+    id: "ent-pre-4",
+    nameVi: "Truyện ngụ ngôn / Bài học cuộc sống (Moral Story)",
+    nameEn: "Moral Story",
+    goalVi: "Truyền cảm hứng / Lấy nước mắt (Inspire & Emotional)",
+    goalEn: "Inspire & Emotional",
+    toneVi: "Kể chuyện mượt mà (Narrative & Engaging)",
+    toneEn: "Narrative & Engaging",
+    styleVi: "storytime",
+    styleEn: "storytime",
+    expertRoleVi: "Người kể chuyện cổ tích (Fairy Tale Teller)",
+    expertRoleEn: "Fairy Tale Teller",
+    ctaVi: "(Không dùng CTA - Để kết thúc mở)",
+    ctaEn: "(No CTA - Left Open-Ended)"
+  }
+];
+
+export const entertainmentIndustries = [
+  { id: "ent-ind-1", nameVi: "Sáng tạo nội dung (Content Creator / YouTuber)", nameEn: "Content Creator / YouTuber", descriptionVi: "", descriptionEn: "" },
+  { id: "ent-ind-2", nameVi: "Kênh Giải trí & Hài hước", nameEn: "Entertainment & Humor Channel", descriptionVi: "", descriptionEn: "" },
+  { id: "ent-ind-3", nameVi: "Kênh Hoạt hình Thiếu nhi", nameEn: "Children's Animation Channel", descriptionVi: "", descriptionEn: "" },
+  { id: "ent-ind-4", nameVi: "Phim ngắn / Nghệ thuật (Art & Film)", nameEn: "Short Film / Art", descriptionVi: "", descriptionEn: "" }
+];
+
+export const entertainmentCategoryOptions = [
+  { value: "Hoạt hình 3D Pixar/Disney (Bóng bẩy, mượt mà)", labelVi: "Hoạt hình 3D Pixar/Disney (Bóng bẩy, mượt mà)", labelEn: "3D Pixar/Disney Animation (Sleek & Smooth)" },
+  { value: "Hoạt hình 2D Anime/Ghibli (Nghệ thuật, nên thơ)", labelVi: "Hoạt hình 2D Anime/Ghibli (Nghệ thuật, nên thơ)", labelEn: "2D Anime/Ghibli style (Artistic & Poetic)" },
+  { value: "Hoạt hình Đất sét / Stop-motion (Độc lạ)", labelVi: "Hoạt hình Đất sét / Stop-motion (Độc lạ)", labelEn: "Claymation / Stop-motion (Unique)" },
+  { value: "Video kể chuyện có minh họa (Storytime)", labelVi: "Video kể chuyện có minh họa (Storytime)", labelEn: "Illustrated Storytelling (Storytime)" }
+];
+
+export const entertainmentStyleOptions = [
+  { value: "3d-pixar", labelVi: "Hoạt hình 3D Pixar/Disney (Bóng bẩy, mượt mà)", labelEn: "3D Pixar/Disney Animation" },
+  { value: "2d-anime", labelVi: "Hoạt hình 2D Anime/Ghibli (Nghệ thuật, nên thơ)", labelEn: "2D Anime/Ghibli Style" },
+  { value: "clay-stopmotion", labelVi: "Hoạt hình Đất sét / Stop-motion (Độc lạ)", labelEn: "Claymation / Stop-motion" },
+  { value: "storytime", labelVi: "Video kể chuyện có minh họa (Storytime)", labelEn: "Illustrated Storytelling" }
+];
+
+export const entertainmentGoalOptions = [
+  { value: "Giải trí & Gây cười (Entertain & Humor)", labelVi: "Giải trí & Gây cười (Entertain & Humor)", labelEn: "Entertain & Humor" },
+  { value: "Truyền cảm hứng / Lấy nước mắt (Inspire & Emotional)", labelVi: "Truyền cảm hứng / Lấy nước mắt (Inspire & Emotional)", labelEn: "Inspire & Emotional" },
+  { value: "Giữ chân người xem đến cuối (High Retention)", labelVi: "Giữ chân người xem đến cuối (High Retention)", labelEn: "High Retention" },
+  { value: "Tạo trend / Kích thích Share (Viral Sharing)", labelVi: "Tạo trend / Kích thích Share (Viral Sharing)", labelEn: "Viral Sharing" }
+];
+
+export const entertainmentToneOptions = [
+  { value: "Kể chuyện mượt mà (Narrative & Engaging)", labelVi: "Kể chuyện mượt mà (Narrative & Engaging)", labelEn: "Narrative & Engaging" },
+  { value: "Nhí nhảnh & Đáng yêu (Playful & Cute)", labelVi: "Nhí nhảnh & Đáng yêu (Playful & Cute)", labelEn: "Playful & Cute" },
+  { value: "Kịch tính & Bí ẩn (Dramatic & Mysterious)", labelVi: "Kịch tính & Bí ẩn (Dramatic & Mysterious)", labelEn: "Dramatic & Mysterious" },
+  { value: "Hài hước & Châm biếm (Sarcastic & Funny)", labelVi: "Hài hước & Châm biếm (Sarcastic & Funny)", labelEn: "Sarcastic & Funny" }
+];
+
+export const entertainmentExpertOptions = [
+  { value: "Nhà biên kịch phim hoạt hình (Animation Scriptwriter)", labelVi: "Nhà biên kịch phim hoạt hình (Animation Scriptwriter)", labelEn: "Animation Scriptwriter" },
+  { value: "Đạo diễn phim hài (Comedy Director)", labelVi: "Đạo diễn phim hài (Comedy Director)", labelEn: "Comedy Director" },
+  { value: "Người kể chuyện cổ tích (Fairy Tale Teller)", labelVi: "Người kể chuyện cổ tích (Fairy Tale Teller)", labelEn: "Fairy Tale Teller" }
+];
+
+export const entertainmentCtaOptions = [
+  { value: "Đăng ký kênh / Follow ngay", labelVi: "Đăng ký kênh / Follow ngay", labelEn: "Subscribe / Follow Now" },
+  { value: "Đón xem phần 2 nhé!", labelVi: "Đón xem phần 2 nhé!", labelEn: "Stay tuned for Part 2!" },
+  { value: "Thả tim & Bình luận ý kiến", labelVi: "Thả tim & Bình luận ý kiến", labelEn: "Like & Comment thoughts" },
+  { value: "(Không dùng CTA - Để kết thúc mở)", labelVi: "(Không dùng CTA - Để kết thúc mở)", labelEn: "No CTA - Open-ended" }
+];
+
 interface Props {
   lang: "vi" | "en";
   industries: IndustryTemplate[];
@@ -76,6 +187,7 @@ interface Props {
 }
 
 export default function ProjectCreator({ lang, industries, presets, onCreateProject, onUpdateProject, project, onResetProject, isLoading }: Props) {
+  const [projectMode, setProjectMode] = useState<"commercial" | "entertainment">("commercial");
   const [name, setName] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState("ind-1");
   const [contentType, setContentType] = useState("TikTok Video Ad (9:16)");
@@ -100,19 +212,25 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
 
   useEffect(() => {
     if (project) {
+      const isEnt = (
+        project.industryId?.startsWith("ent-") ||
+        ["Nhà biên kịch phim hoạt hình (Animation Scriptwriter)", "Đạo diễn phim hài (Comedy Director)", "Người kể chuyện cổ tích (Fairy Tale Teller)"].includes(project.aiExpertRole || "") ||
+        ["Giải trí & Gây cười (Entertain & Humor)", "Truyền cảm hứng / Lấy nước mắt (Inspire & Emotional)", "Giữ chân người xem đến cuối (High Retention)", "Tạo trend / Kích thích Share (Viral Sharing)"].includes(project.goal || "")
+      );
+      setProjectMode(isEnt ? "entertainment" : "commercial");
       setName(project.name || "");
-      setSelectedIndustry(project.industryId || "ind-1");
+      setSelectedIndustry(project.industryId || (isEnt ? "ent-ind-1" : "ind-1"));
       setContentType(project.contentType || "TikTok Video Ad (9:16)");
       setProductName(project.productName || "");
-      setProductCategory(project.productCategory || "Video Quảng cáo ngắn (TikTok/Reels/Shorts)");
+      setProductCategory(project.productCategory || (isEnt ? "Hoạt hình 3D Pixar/Disney (Bóng bẩy, mượt mà)" : "Video Quảng cáo ngắn (TikTok/Reels/Shorts)"));
       setProductInfo(project.productInfo || "");
       setAiLanguage(project.aiLanguage || "vi");
       setTargetWordCount(project.targetWordCount || "300 - 500 từ");
-      setGoal(project.goal || "Tăng nhận diện thương hiệu");
-      setTone(project.tone || "Chuyên nghiệp & Gãy gọn");
-      setStyle(project.style || "Hiện đại & Tốc độ nhanh");
-      setExpertRole(project.aiExpertRole || "Chuyên gia Marketing");
-      setCta(project.cta || "Mua ngay");
+      setGoal(project.goal || (isEnt ? "Giải trí & Gây cười (Entertain & Humor)" : "Tăng nhận diện thương hiệu"));
+      setTone(project.tone || (isEnt ? "Kể chuyện mượt mà (Narrative & Engaging)" : "Chuyên nghiệp & Gãy gọn"));
+      setStyle(project.style || (isEnt ? "3d-pixar" : "Hiện đại & Tốc độ nhanh"));
+      setExpertRole(project.aiExpertRole || (isEnt ? "Nhà biên kịch phim hoạt hình (Animation Scriptwriter)" : "Chuyên gia Marketing"));
+      setCta(project.cta || (isEnt ? "Đăng ký kênh / Follow ngay" : "Mua ngay"));
       setVoiceId(project.voiceId || "EXAVITQu4vr4xnSDxMaL");
       setIncludeDialogue(!!project.includeDialogue);
       setImages(project.imageReferences || [
@@ -120,6 +238,7 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
       ]);
     } else {
       setName("");
+      setProjectMode("commercial");
       setSelectedIndustry("ind-1");
       setContentType("TikTok Video Ad (9:16)");
       setProductName("");
@@ -139,6 +258,27 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
       ]);
     }
   }, [project]);
+
+  const handleModeChange = (mode: "commercial" | "entertainment") => {
+    setProjectMode(mode);
+    if (mode === "commercial") {
+      setSelectedIndustry("ind-1");
+      setProductCategory("Video Quảng cáo ngắn (TikTok/Reels/Shorts)");
+      setGoal("Tăng nhận diện thương hiệu");
+      setTone("Chuyên nghiệp & Gãy gọn");
+      setStyle("Hiện đại & Tốc độ nhanh");
+      setExpertRole("Chuyên gia Marketing");
+      setCta("Mua ngay");
+    } else {
+      setSelectedIndustry("ent-ind-1");
+      setProductCategory("Hoạt hình 3D Pixar/Disney (Bóng bẩy, mượt mà)");
+      setGoal("Giải trí & Gây cười (Entertain & Humor)");
+      setTone("Kể chuyện mượt mà (Narrative & Engaging)");
+      setStyle("3d-pixar");
+      setExpertRole("Nhà biên kịch phim hoạt hình (Animation Scriptwriter)");
+      setCta("Đăng ký kênh / Follow ngay");
+    }
+  };
 
   const applyPreset = (preset: SmartPreset) => {
     if (lang === "vi") {
@@ -284,6 +424,24 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Mode Toggle Tabs */}
+        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 max-w-md mx-auto mb-6">
+          <button
+            type="button"
+            onClick={() => handleModeChange("commercial")}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${projectMode === "commercial" ? "bg-[#34b1b3]/20 border border-[#34b1b3]/30 text-[#34b1b3] shadow-[0_0_12px_rgba(52,177,179,0.15)]" : "text-slate-400 border border-transparent hover:text-slate-200"}`}
+          >
+            🏢 {lang === "vi" ? "Thương Mại" : "Commercial"}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleModeChange("entertainment")}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${projectMode === "entertainment" ? "bg-[#34b1b3]/20 border border-[#34b1b3]/30 text-[#34b1b3] shadow-[0_0_12px_rgba(52,177,179,0.15)]" : "text-slate-400 border border-transparent hover:text-slate-200"}`}
+          >
+            🎨 {lang === "vi" ? "Hoạt Hình / Giải Trí" : "Animation / Entertainment"}
+          </button>
+        </div>
+
         {/* Form Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-stretch">
           {/* Col 1 */}
@@ -312,11 +470,19 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                   onChange={(e) => setSelectedIndustry(e.target.value)}
                   className="w-full text-sm rounded-lg glass-input p-2.5 cursor-pointer font-sans"
                 >
-                  {industries.map((ind) => (
-                    <option key={ind.id} value={ind.id} className="bg-[#0a0f18] text-white">
-                      {lang === "vi" ? ind.nameVi : ind.nameEn}
-                    </option>
-                  ))}
+                  {projectMode === "commercial" ? (
+                    industries.map((ind) => (
+                      <option key={ind.id} value={ind.id} className="bg-[#0a0f18] text-white">
+                        {lang === "vi" ? ind.nameVi : ind.nameEn}
+                      </option>
+                    ))
+                  ) : (
+                    entertainmentIndustries.map((ind) => (
+                      <option key={ind.id} value={ind.id} className="bg-[#0a0f18] text-white">
+                        {lang === "vi" ? ind.nameVi : ind.nameEn}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -343,16 +509,33 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                   onChange={(e) => setProductCategory(e.target.value)}
                   className="w-full text-sm rounded-lg glass-input p-2.5 cursor-pointer hover:border-[#34b1b3]/80 focus:border-[#34b1b3] focus:ring-1 focus:ring-[#34b1b3]/20 font-sans"
                 >
-                  {!categoryOptions.some(opt => opt.value === productCategory) && productCategory && (
-                    <option value={productCategory} className="bg-[#0a0f18] text-white">
-                      {productCategory}
-                    </option>
+                  {projectMode === "commercial" ? (
+                    <>
+                      {!categoryOptions.some(opt => opt.value === productCategory) && productCategory && (
+                        <option value={productCategory} className="bg-[#0a0f18] text-white">
+                          {productCategory}
+                        </option>
+                      )}
+                      {categoryOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {!entertainmentCategoryOptions.some(opt => opt.value === productCategory) && productCategory && (
+                        <option value={productCategory} className="bg-[#0a0f18] text-white">
+                          {productCategory}
+                        </option>
+                      )}
+                      {entertainmentCategoryOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
                   )}
-                  {categoryOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
-                      {lang === "vi" ? opt.labelVi : opt.labelEn}
-                    </option>
-                  ))}
                 </select>
               </div>
             </div>
@@ -390,16 +573,29 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                 ⚡ {lang === "vi" ? "Hộp Thiết Lập Smart Preset" : "Smart Presets Sandbox"}
               </span>
               <div className="flex flex-wrap gap-2">
-                {presets.map((pre) => (
-                  <button
-                    key={pre.id}
-                    type="button"
-                    onClick={() => applyPreset(pre)}
-                    className="text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#34b1b3]/55 transition-all text-slate-200 rounded-md px-3 py-1.5 cursor-pointer"
-                  >
-                    🚀 {lang === "vi" ? pre.nameVi : pre.nameEn}
-                  </button>
-                ))}
+                {projectMode === "commercial" ? (
+                  presets.map((pre) => (
+                    <button
+                      key={pre.id}
+                      type="button"
+                      onClick={() => applyPreset(pre)}
+                      className="text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#34b1b3]/55 transition-all text-slate-200 rounded-md px-3 py-1.5 cursor-pointer"
+                    >
+                      🚀 {lang === "vi" ? pre.nameVi : pre.nameEn}
+                    </button>
+                  ))
+                ) : (
+                  entertainmentPresets.map((pre) => (
+                    <button
+                      key={pre.id}
+                      type="button"
+                      onClick={() => applyPreset(pre)}
+                      className="text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#34b1b3]/55 transition-all text-slate-200 rounded-md px-3 py-1.5 cursor-pointer"
+                    >
+                      🚀 {lang === "vi" ? pre.nameVi : pre.nameEn}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
@@ -448,7 +644,7 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
             {/* Dropdowns fields section - Upgraded to 2 columns and full-width CTA */}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-1">
-                <label className="block text-xs font-semibold text-slate-330 uppercase tracking-wider mb-1.5 font-mono">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
                   {lang === "vi" ? "Mục tiêu truyền thông *" : "Video Core Goal *"}
                 </label>
                 <select
@@ -456,21 +652,38 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                   onChange={(e) => setGoal(e.target.value)}
                   className="w-full text-sm rounded-lg glass-input p-2.5 cursor-pointer hover:border-[#34b1b3]/80 focus:border-[#34b1b3] focus:ring-1 focus:ring-[#34b1b3]/20 font-sans block"
                 >
-                  {!goalOptions.some(opt => opt.value === goal) && goal && (
-                    <option value={goal} className="bg-[#0a0f18] text-white">
-                      {goal}
-                    </option>
+                  {projectMode === "commercial" ? (
+                    <>
+                      {!goalOptions.some(opt => opt.value === goal) && goal && (
+                        <option value={goal} className="bg-[#0a0f18] text-white">
+                          {goal}
+                        </option>
+                      )}
+                      {goalOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {!entertainmentGoalOptions.some(opt => opt.value === goal) && goal && (
+                        <option value={goal} className="bg-[#0a0f18] text-white">
+                          {goal}
+                        </option>
+                      )}
+                      {entertainmentGoalOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
                   )}
-                  {goalOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
-                      {lang === "vi" ? opt.labelVi : opt.labelEn}
-                    </option>
-                  ))}
                 </select>
               </div>
 
               <div className="col-span-1">
-                <label className="block text-xs font-semibold text-slate-330 uppercase tracking-wider mb-1.5 font-mono">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
                   {lang === "vi" ? "Giọng Văn Thuyết Phục *" : "Voice Tone *"}
                 </label>
                 <select
@@ -478,21 +691,38 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                   onChange={(e) => setTone(e.target.value)}
                   className="w-full text-sm rounded-lg glass-input p-2.5 cursor-pointer hover:border-[#34b1b3]/80 focus:border-[#34b1b3] focus:ring-1 focus:ring-[#34b1b3]/20 font-sans block"
                 >
-                  {!toneOptions.some(opt => opt.value === tone) && tone && (
-                    <option value={tone} className="bg-[#0a0f18] text-white">
-                      {tone}
-                    </option>
+                  {projectMode === "commercial" ? (
+                    <>
+                      {!toneOptions.some(opt => opt.value === tone) && tone && (
+                        <option value={tone} className="bg-[#0a0f18] text-white">
+                          {tone}
+                        </option>
+                      )}
+                      {toneOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {!entertainmentToneOptions.some(opt => opt.value === tone) && tone && (
+                        <option value={tone} className="bg-[#0a0f18] text-white">
+                          {tone}
+                        </option>
+                      )}
+                      {entertainmentToneOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
                   )}
-                  {toneOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
-                      {lang === "vi" ? opt.labelVi : opt.labelEn}
-                    </option>
-                  ))}
                 </select>
               </div>
 
               <div className="col-span-1">
-                <label className="block text-xs font-semibold text-slate-330 uppercase tracking-wider mb-1.5 font-mono">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
                   {lang === "vi" ? "Phong cách *" : "Frame Style *"}
                 </label>
                 <select
@@ -500,21 +730,38 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                   onChange={(e) => setStyle(e.target.value)}
                   className="w-full text-sm rounded-lg glass-input p-2.5 cursor-pointer hover:border-[#34b1b3]/80 focus:border-[#34b1b3] focus:ring-1 focus:ring-[#34b1b3]/20 font-sans block"
                 >
-                  {!styleOptions.some(opt => opt.value === style) && style && (
-                    <option value={style} className="bg-[#0a0f18] text-white">
-                      {style}
-                    </option>
+                  {projectMode === "commercial" ? (
+                    <>
+                      {!styleOptions.some(opt => opt.value === style) && style && (
+                        <option value={style} className="bg-[#0a0f18] text-white">
+                          {style}
+                        </option>
+                      )}
+                      {styleOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {!entertainmentStyleOptions.some(opt => opt.value === style) && style && (
+                        <option value={style} className="bg-[#0a0f18] text-white">
+                          {style}
+                        </option>
+                      )}
+                      {entertainmentStyleOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
                   )}
-                  {styleOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
-                      {lang === "vi" ? opt.labelVi : opt.labelEn}
-                    </option>
-                  ))}
                 </select>
               </div>
 
               <div className="col-span-1">
-                <label className="block text-xs font-semibold text-slate-330 uppercase tracking-wider mb-1.5 font-mono">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
                   {lang === "vi" ? "Vai chuyên gia *" : "AI Expert Role *"}
                 </label>
                 <select
@@ -522,21 +769,38 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                   onChange={(e) => setExpertRole(e.target.value)}
                   className="w-full text-sm rounded-lg glass-input p-2.5 cursor-pointer hover:border-[#34b1b3]/80 focus:border-[#34b1b3] focus:ring-1 focus:ring-[#34b1b3]/20 font-sans block"
                 >
-                  {!expertOptions.some(opt => opt.value === expertRole) && expertRole && (
-                    <option value={expertRole} className="bg-[#0a0f18] text-white">
-                      {expertRole}
-                    </option>
+                  {projectMode === "commercial" ? (
+                    <>
+                      {!expertOptions.some(opt => opt.value === expertRole) && expertRole && (
+                        <option value={expertRole} className="bg-[#0a0f18] text-white">
+                          {expertRole}
+                        </option>
+                      )}
+                      {expertOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {!entertainmentExpertOptions.some(opt => opt.value === expertRole) && expertRole && (
+                        <option value={expertRole} className="bg-[#0a0f18] text-white">
+                          {expertRole}
+                        </option>
+                      )}
+                      {entertainmentExpertOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
                   )}
-                  {expertOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
-                      {lang === "vi" ? opt.labelVi : opt.labelEn}
-                    </option>
-                  ))}
                 </select>
               </div>
 
               <div className="col-span-1">
-                <label className="block text-xs font-semibold text-slate-330 uppercase tracking-wider mb-1.5 font-mono">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
                   {lang === "vi" ? "Nút CTA mong muốn *" : "CTA BUTTON TEXT *"}
                 </label>
                 <select
@@ -544,16 +808,33 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                   onChange={(e) => setCta(e.target.value)}
                   className="w-full text-sm rounded-lg glass-input p-2.5 cursor-pointer hover:border-[#34b1b3]/80 focus:border-[#34b1b3] focus:ring-1 focus:ring-[#34b1b3]/20 font-sans block"
                 >
-                  {!ctaOptions.some(opt => opt.value === cta) && cta && (
-                    <option value={cta} className="bg-[#0a0f18] text-white">
-                      {cta}
-                    </option>
+                  {projectMode === "commercial" ? (
+                    <>
+                      {!ctaOptions.some(opt => opt.value === cta) && cta && (
+                        <option value={cta} className="bg-[#0a0f18] text-white">
+                          {cta}
+                        </option>
+                      )}
+                      {ctaOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {!entertainmentCtaOptions.some(opt => opt.value === cta) && cta && (
+                        <option value={cta} className="bg-[#0a0f18] text-white">
+                          {cta}
+                        </option>
+                      )}
+                      {entertainmentCtaOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
+                          {lang === "vi" ? opt.labelVi : opt.labelEn}
+                        </option>
+                      ))}
+                    </>
                   )}
-                  {ctaOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value} className="bg-[#0a0f18] text-white">
-                      {lang === "vi" ? opt.labelVi : opt.labelEn}
-                    </option>
-                  ))}
                 </select>
               </div>
 
