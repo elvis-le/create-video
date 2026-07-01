@@ -4,13 +4,14 @@ import {
   Trash2, Plus, RefreshCw, Key, HelpCircle, HardDrive, CheckCircle2,
   XCircle, Zap, Terminal, Edit3, Coins
 } from "lucide-react";
-import { GeminiKey, FlowAccount, ElevenLabsKey, QueueTask, AIModelSettings } from "../types";
+import { GeminiKey, FlowAccount, ElevenLabsKey, QueueTask, AIModelSettings, AIVoice } from "../types";
 
 interface Props {
   lang: "vi" | "en";
   geminiKeys: GeminiKey[];
   flowAccounts: FlowAccount[];
   elevenlabsKeys: ElevenLabsKey[];
+  voices: AIVoice[];
   queueTasks: QueueTask[];
   modelSettings: AIModelSettings;
   onAddGeminiKey: (name: string, key: string) => Promise<void>;
@@ -24,15 +25,19 @@ interface Props {
   onAddElevenLabsKeysBulk: (keys: { name: string; apiKey: string }[]) => Promise<number>;
   onToggleElevenLabsKey: (id: string, currentStatus: string) => Promise<void>;
   onDeleteElevenLabsKey: (id: string) => Promise<void>;
+  onAddVoice: (name: string, voiceId: string, status?: boolean) => Promise<void>;
+  onToggleVoice: (id: string, currentStatus: boolean) => Promise<void>;
+  onDeleteVoice: (id: string) => Promise<void>;
   onUpdateModelSettings: (settings: Partial<AIModelSettings>) => Promise<void>;
   onClearQueueLogs: () => void;
 }
 
 export default function AdminDashboard({
-  lang, geminiKeys, flowAccounts, elevenlabsKeys, queueTasks, modelSettings,
+  lang, geminiKeys, flowAccounts, elevenlabsKeys, voices = [], queueTasks, modelSettings,
   onAddGeminiKey, onAddGeminiKeysBulk, onToggleGeminiKey, onDeleteGeminiKey,
   onAddFlowAccount, onUpdateFlowAccountCredit, onDeleteFlowAccount,
   onAddElevenLabsKey, onAddElevenLabsKeysBulk, onToggleElevenLabsKey, onDeleteElevenLabsKey,
+  onAddVoice, onToggleVoice, onDeleteVoice,
   onUpdateModelSettings, onClearQueueLogs
 }: Props) {
   const [activeTab, setActiveTab] = useState<"api-pool" | "models" | "queue">("api-pool");
@@ -47,6 +52,9 @@ export default function AdminDashboard({
 
   const [newElName, setNewElName] = useState("");
   const [newElValue, setNewElValue] = useState("");
+
+  const [newVoiceName, setNewVoiceName] = useState("");
+  const [newVoiceId, setNewVoiceId] = useState("");
 
   // Bulk add modal states
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -141,6 +149,14 @@ export default function AdminDashboard({
     setNewElValue("");
   };
 
+  const handleSubmitVoice = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVoiceName || !newVoiceId) return;
+    onAddVoice(newVoiceName, newVoiceId, true);
+    setNewVoiceName("");
+    setNewVoiceId("");
+  };
+
   return (
     <div className="space-y-6 relative z-10 font-sans text-slate-200">
       {/* Overview stats for admins */}
@@ -153,10 +169,12 @@ export default function AdminDashboard({
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block font-mono">
               API Pools (Gemini / 11L)
             </span>
-            <h4 className="text-base font-bold text-white font-mono mt-0.5 flex items-center gap-2">
+            <h4 className="text-base font-bold text-white font-mono mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <span>G: <span className="text-[#34b1b3]">{activeKeysCount}</span></span>
               <span className="text-white/20 font-normal">|</span>
               <span>11L: <span className="text-emerald-400">{activeElKeysCount}</span></span>
+              <span className="text-white/20 font-normal">|</span>
+              <span>V: <span className="text-amber-400">{voices.filter(v => v.status).length}</span></span>
             </h4>
           </div>
         </div>
@@ -511,6 +529,81 @@ export default function AdminDashboard({
                 className="w-full bg-[#34b1b3] text-white text-xs font-bold rounded py-2 hover:bg-[#2db3b5] transition-all cursor-pointer shadow-md shadow-[#34b1b3]/25"
               >
                 {lang === "vi" ? "Lưu tài khoản Flow" : "Save and allocate Flow"}
+              </button>
+            </form>
+          </div>
+
+          {/* AI Voices Manager List */}
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-5 shadow-xl space-y-4 col-span-1">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-display">
+                <Zap className="w-4 h-4 text-amber-400" />
+                {lang === "vi" ? "Danh sách Giọng đọc AI" : "AI Voices Database"}
+              </span>
+            </div>
+
+            {/* List */}
+            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+              {voices.map((v) => (
+                <div key={v.id} className="bg-black/20 rounded-lg p-3 border border-white/5 flex items-center justify-between text-xs">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <span className="font-bold text-white block truncate">{v.name}</span>
+                    <span className="font-mono text-[10px] text-slate-400 block mt-0.5 truncate">
+                      ID: {v.voiceId}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => onToggleVoice(v.id, v.status)}
+                      className={`text-[10px] font-bold px-2 py-1 rounded border transition-all cursor-pointer ${v.status ? "bg-amber-500/15 text-amber-400 border-amber-500/20" : "bg-white/5 text-slate-400 border-white/10"}`}
+                    >
+                      {v.status ? (lang === "vi" ? "Bật" : "Active") : (lang === "vi" ? "Tắt" : "Inactive")}
+                    </button>
+                    <button
+                      onClick={() => onDeleteVoice(v.id)}
+                      className="p-1.5 hover:bg-white/10 rounded cursor-pointer text-slate-400 hover:text-red-400 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-slate-400 hover:text-red-400" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {voices.length === 0 && (
+                <div className="text-center text-slate-500 p-8 font-mono text-[10px]">
+                  {lang === "vi" ? "Chưa có Giọng đọc AI nào." : "No AI Voices found."}
+                </div>
+              )}
+            </div>
+
+            {/* Add form */}
+            <form onSubmit={handleSubmitVoice} className="bg-black/20 border border-white/5 rounded-lg p-3.5 space-y-2.5">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block font-mono">
+                + {lang === "vi" ? "Thêm Giọng đọc AI mới" : "Add New AI Voice"}
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <input
+                  type="text"
+                  required
+                  placeholder={lang === "vi" ? "Tên (Bella - Nữ)..." : "Name (e.g. Bella)..."}
+                  value={newVoiceName}
+                  onChange={(e) => setNewVoiceName(e.target.value)}
+                  className="rounded p-2.5 bg-black/30 border border-white/10 focus:outline-none focus:border-amber-400 text-white"
+                />
+                <input
+                  type="text"
+                  required
+                  placeholder={lang === "vi" ? "Voice ID ElevenLabs..." : "Voice ID..."}
+                  value={newVoiceId}
+                  onChange={(e) => setNewVoiceId(e.target.value)}
+                  className="rounded p-2.5 bg-black/30 border border-white/10 focus:outline-none focus:border-amber-400 text-white"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded py-2 transition-all cursor-pointer shadow-md shadow-amber-500/25"
+              >
+                {lang === "vi" ? "Lưu giọng nói vào DB" : "Save Voice to DB"}
               </button>
             </form>
           </div>

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Sparkles, HelpCircle, Upload, Plus, Trash2, CheckCircle } from "lucide-react";
-import { SmartPreset, IndustryTemplate, Project } from "../types";
+import { SmartPreset, IndustryTemplate, Project, AIVoice } from "../types";
 
 export const goalOptions = [
   { value: "Tăng nhận diện thương hiệu", labelVi: "Tăng nhận diện thương hiệu", labelEn: "Brand Awareness" },
@@ -209,6 +209,30 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [voices, setVoices] = useState<AIVoice[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchVoices = async () => {
+      try {
+        const res = await fetch("/api/voices");
+        const data = await res.json();
+        if (active && Array.isArray(data)) {
+          const activeVoices = data.filter(v => v.status);
+          setVoices(activeVoices);
+          if (!project && activeVoices.length > 0) {
+            setVoiceId(activeVoices[0].voiceId);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch voices inside ProjectCreator:", err);
+      }
+    };
+    fetchVoices();
+    return () => {
+      active = false;
+    };
+  }, [project]);
 
   useEffect(() => {
     if (project) {
@@ -847,24 +871,21 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
                   onChange={(e) => setVoiceId(e.target.value)}
                   className="w-full text-sm rounded-lg glass-input p-2.5 cursor-pointer border-emerald-500/20 hover:border-emerald-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 font-sans block text-emerald-300"
                 >
-                  <option value="EXAVITQu4vr4xnSDxMaL" className="bg-[#0a0f18] text-white">
-                    {lang === "vi" ? "Bella (Giọng Nữ UGC Thân thiện)" : "Bella (Friendly Female UGC)"}
-                  </option>
-                  <option value="21m00Tcm4TlvDq8ikWAM" className="bg-[#0a0f18] text-white">
-                    {lang === "vi" ? "Rachel (Giọng Nữ Trẻ trung Review)" : "Rachel (Young Female Reviewer)"}
-                  </option>
-                  <option value="ErXwobaYiN019vkySvjV" className="bg-[#0a0f18] text-white">
-                    {lang === "vi" ? "Antoni (Giọng Nam Trầm ấm Thuyết trình)" : "Antoni (Deep Male Presenter)"}
-                  </option>
-                  <option value="piTKgcLEGmPEeCEmJhbb" className="bg-[#0a0f18] text-white">
-                    {lang === "vi" ? "Nicole (Giọng Nữ Năng động)" : "Nicole (Energetic Female)"}
-                  </option>
-                  <option value="pNInz6obpgq9S3JGC85j" className="bg-[#0a0f18] text-white">
-                    {lang === "vi" ? "Adam (Giọng Nam Trung niên Cuốn hút)" : "Adam (Engaging Deep Male)"}
-                  </option>
-                  <option value="z9fAnlkFmtZre7kurN1B" className="bg-[#0a0f18] text-white">
-                    {lang === "vi" ? "Glinda (Giọng Nữ Nhẹ nhàng)" : "Glinda (Gentle Female)"}
-                  </option>
+                  {voiceId && !voices.some(v => v.voiceId === voiceId) && (
+                    <option value={voiceId} className="bg-[#0a0f18] text-white">
+                      {lang === "vi" ? `Giọng hiện tại (ID: ${voiceId})` : `Current Voice (ID: ${voiceId})`}
+                    </option>
+                  )}
+                  {voices.map((v) => (
+                    <option key={v.id} value={v.voiceId} className="bg-[#0a0f18] text-white">
+                      {v.name}
+                    </option>
+                  ))}
+                  {voices.length === 0 && (
+                    <option value="" className="bg-[#0a0f18] text-white" disabled>
+                      {lang === "vi" ? "Đang tải giọng đọc..." : "Loading voices..."}
+                    </option>
+                  )}
                 </select>
               </div>
             </div>

@@ -40,7 +40,11 @@ import {
   dbCreateElevenLabsKey,
   dbBulkCreateElevenLabsKeys,
   dbUpdateElevenLabsKey,
-  dbDeleteElevenLabsKey
+  dbDeleteElevenLabsKey,
+  dbFetchAllAIVoices,
+  dbCreateAIVoice,
+  dbUpdateAIVoice,
+  dbDeleteAIVoice
 } from "./supabaseService.js";
 import { generateImagesForProjectScenes } from "./imageGenerationService.js";
 import { generateVoiceForProjectScenes } from "./voiceGenerationService.js";
@@ -1923,6 +1927,48 @@ app.delete("/api/keys/elevenlabs/:id", async (req, res) => {
 
   elevenlabsKeys = elevenlabsKeys.filter(k => k.id !== req.params.id);
   res.json({ message: "Xóa khóa thành công" });
+});
+
+// API: AI Voices CRUD endpoints
+app.get("/api/voices", async (req, res) => {
+  try {
+    const voices = await dbFetchAllAIVoices();
+    res.json(voices);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to fetch voices" });
+  }
+});
+
+app.post("/api/voices", async (req, res) => {
+  try {
+    const { name, voiceId, status } = req.body;
+    if (!name || !voiceId) {
+      return res.status(400).json({ error: "Missing name or voiceId" });
+    }
+    const voice = await dbCreateAIVoice({ name, voiceId, status });
+    res.status(201).json(voice);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to create voice" });
+  }
+});
+
+app.put("/api/voices/:id", async (req, res) => {
+  try {
+    const { name, voiceId, status } = req.body;
+    const voice = await dbUpdateAIVoice(req.params.id, { name, voiceId, status });
+    res.json(voice);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to update voice" });
+  }
+});
+
+app.delete("/api/voices/:id", async (req, res) => {
+  try {
+    await dbDeleteAIVoice(req.params.id);
+    res.json({ message: "Xóa giọng nói thành công" });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to delete voice" });
+  }
 });
 
 // API: Models configuration

@@ -181,6 +181,49 @@ CREATE POLICY "Allow public update on elevenlabs_accounts" ON elevenlabs_account
 
 DROP POLICY IF EXISTS "Allow public delete on elevenlabs_accounts" ON elevenlabs_accounts;
 CREATE POLICY "Allow public delete on elevenlabs_accounts" ON elevenlabs_accounts FOR DELETE TO public USING (true);
+
+-- 9. Tạo bảng ai_voices quản lý danh sách giọng đọc AI
+CREATE TABLE IF NOT EXISTS ai_voices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  voice_id VARCHAR(255) NOT NULL,
+  status BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Bật RLS cho ai_voices
+ALTER TABLE ai_voices ENABLE ROW LEVEL SECURITY;
+
+-- Tạo chính sách cho ai_voices
+DROP POLICY IF EXISTS "Allow public select on ai_voices" ON ai_voices;
+CREATE POLICY "Allow public select on ai_voices" ON ai_voices FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Allow public insert on ai_voices" ON ai_voices;
+CREATE POLICY "Allow public insert on ai_voices" ON ai_voices FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public update on ai_voices" ON ai_voices;
+CREATE POLICY "Allow public update on ai_voices" ON ai_voices FOR UPDATE TO public USING (true);
+
+DROP POLICY IF EXISTS "Allow public delete on ai_voices" ON ai_voices;
+CREATE POLICY "Allow public delete on ai_voices" ON ai_voices FOR DELETE TO public USING (true);
+
+-- Thêm giọng nói mẫu ban đầu nếu bảng trống
+-- Chúng ta sẽ chèn vô danh qua câu lệnh INSERT
+INSERT INTO ai_voices (name, voice_id, status)
+SELECT 'Bella - Nữ UGC', 'EXAVITQu4vr4xnSDxMaL', true
+WHERE NOT EXISTS (SELECT 1 FROM ai_voices LIMIT 1);
+
+INSERT INTO ai_voices (name, voice_id, status)
+SELECT 'Rachel - Nữ Trầm', '21m00Tcm4TlvDq8ikWAM', true
+WHERE NOT EXISTS (SELECT 1 FROM ai_voices WHERE voice_id = '21m00Tcm4TlvDq8ikWAM');
+
+INSERT INTO ai_voices (name, voice_id, status)
+SELECT 'Antoni - Nam Thuyết Minh', 'ErXwobaYiN019PkySvjV', true
+WHERE NOT EXISTS (SELECT 1 FROM ai_voices WHERE voice_id = 'ErXwobaYiN019PkySvjV');
+
+INSERT INTO ai_voices (name, voice_id, status)
+SELECT 'Adam - Nam Trầm', 'pNInz6obpgDQ51uDW9nH', true
+WHERE NOT EXISTS (SELECT 1 FROM ai_voices WHERE voice_id = 'pNInz6obpgDQ51uDW9nH');
 `;
 
 /**
@@ -805,6 +848,96 @@ export async function dbUpdateElevenLabsKey(id: string, updates: Partial<any>): 
 export async function dbDeleteElevenLabsKey(id: string): Promise<boolean> {
   if (!supabase) return false;
   const { error } = await supabase.from("elevenlabs_accounts").delete().eq("id", id);
+  if (error) throw error;
+  return true;
+}
+
+/**
+ * AI Voices DB functions
+ */
+export async function dbFetchAllAIVoices(): Promise<any[]> {
+  if (!supabase) {
+    // Return mock data if not configured to prevent crashes on startup
+    return [
+      { id: "v1", name: "Bella - Nữ UGC", voiceId: "EXAVITQu4vr4xnSDxMaL", status: true },
+      { id: "v2", name: "Rachel - Nữ Trầm", voiceId: "21m00Tcm4TlvDq8ikWAM", status: true },
+      { id: "v3", name: "Antoni - Nam Thuyết Minh", voiceId: "ErXwobaYiN019PkySvjV", status: true },
+      { id: "v4", name: "Adam - Nam Trầm", voiceId: "pNInz6obpgDQ51uDW9nH", status: true }
+    ];
+  }
+  try {
+    const { data: rows, error } = await supabase
+      .from("ai_voices")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.warn("⚠️ Notice: dbFetchAllAIVoices error:", error.message);
+      // Fallback
+      return [
+        { id: "v1", name: "Bella - Nữ UGC", voiceId: "EXAVITQu4vr4xnSDxMaL", status: true },
+        { id: "v2", name: "Rachel - Nữ Trầm", voiceId: "21m00Tcm4TlvDq8ikWAM", status: true },
+        { id: "v3", name: "Antoni - Nam Thuyết Minh", voiceId: "ErXwobaYiN019PkySvjV", status: true },
+        { id: "v4", name: "Adam - Nam Trầm", voiceId: "pNInz6obpgDQ51uDW9nH", status: true }
+      ];
+    }
+    return (rows || []).map(r => ({
+      id: r.id,
+      name: r.name,
+      voiceId: r.voice_id,
+      status: !!r.status
+    }));
+  } catch (err) {
+    console.warn("⚠️ Notice: dbFetchAllAIVoices error:", err);
+    throw err;
+  }
+}
+
+export async function dbCreateAIVoice(voiceData: any): Promise<any> {
+  if (!supabase) return null;
+  const payload = {
+    name: voiceData.name,
+    voice_id: voiceData.voiceId,
+    status: voiceData.status !== undefined ? voiceData.status : true
+  };
+  const { data, error } = await supabase
+    .from("ai_voices")
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    name: data.name,
+    voiceId: data.voice_id,
+    status: data.status
+  };
+}
+
+export async function dbUpdateAIVoice(id: string, updates: Partial<any>): Promise<any> {
+  if (!supabase) return null;
+  const payload: any = {};
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.voiceId !== undefined) payload.voice_id = updates.voiceId;
+  if (updates.status !== undefined) payload.status = updates.status;
+
+  const { data, error } = await supabase
+    .from("ai_voices")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    name: data.name,
+    voiceId: data.voice_id,
+    status: data.status
+  };
+}
+
+export async function dbDeleteAIVoice(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from("ai_voices").delete().eq("id", id);
   if (error) throw error;
   return true;
 }

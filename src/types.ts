@@ -150,3 +150,10 @@ export interface SupabaseStatus {
   error: string | null;
   sqlSetupCode: string;
 }
+
+export interface AIVoice {
+  id: string;
+  name: string;
+  voiceId: string;
+  status: boolean;
+}

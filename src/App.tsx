@@ -10,7 +10,7 @@ import ScenesBreakdown from "./components/ScenesBreakdown";
 import ImageVideoGenerator from "./components/ImageVideoGenerator";
 import AdminDashboard from "./components/AdminDashboard";
 import TechStackBoilerplate from "./components/TechStackBoilerplate";
-import { Project, GeminiKey, FlowAccount, ElevenLabsKey, QueueTask, AIModelSettings, LogEntry, IndustryTemplate, SmartPreset, Scene, SupabaseStatus } from "./types";
+import { Project, GeminiKey, FlowAccount, ElevenLabsKey, QueueTask, AIModelSettings, LogEntry, IndustryTemplate, SmartPreset, Scene, SupabaseStatus, AIVoice } from "./types";
 
 export default function App() {
   const [lang, setLang] = useState<"vi" | "en">("vi");
@@ -22,6 +22,7 @@ export default function App() {
   const [geminiKeys, setGeminiKeys] = useState<GeminiKey[]>([]);
   const [flowAccounts, setFlowAccounts] = useState<FlowAccount[]>([]);
   const [elevenlabsKeys, setElevenlabsKeys] = useState<ElevenLabsKey[]>([]);
+  const [voices, setVoices] = useState<AIVoice[]>([]);
   const [queueTasks, setQueueTasks] = useState<QueueTask[]>([]);
   const [modelSettings, setModelSettings] = useState<AIModelSettings | null>(null);
   const [industries, setIndustries] = useState<IndustryTemplate[]>([]);
@@ -65,6 +66,14 @@ export default function App() {
       const resElevenLabs = await fetch("/api/keys/elevenlabs");
       const dataElevenLabs = await resElevenLabs.json();
       setElevenlabsKeys(dataElevenLabs);
+
+      try {
+        const resVoices = await fetch("/api/voices");
+        const dataVoices = await resVoices.json();
+        setVoices(dataVoices || []);
+      } catch (e) {
+        console.warn("Could not load voices:", e);
+      }
 
       const resTasks = await fetch("/api/queue/tasks");
       const dataTasks = await resTasks.json();
@@ -413,6 +422,43 @@ export default function App() {
     }
   };
 
+  const handleAddVoice = async (name: string, voiceId: string, status = true) => {
+    try {
+      const res = await fetch("/api/voices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, voiceId, status })
+      });
+      const nVoice = await res.json();
+      setVoices([...voices, nVoice]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleVoice = async (id: string, currentStatus: boolean) => {
+    try {
+      const res = await fetch(`/api/voices/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: !currentStatus })
+      });
+      const updated = await res.json();
+      setVoices(voices.map(v => v.id === id ? updated : v));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteVoice = async (id: string) => {
+    try {
+      await fetch(`/api/voices/${id}`, { method: "DELETE" });
+      setVoices(voices.filter(v => v.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleUpdateModelSettings = async (settings: Partial<AIModelSettings>) => {
     try {
       const res = await fetch("/api/settings/models", {
@@ -710,6 +756,7 @@ export default function App() {
             geminiKeys={geminiKeys}
             flowAccounts={flowAccounts}
             elevenlabsKeys={elevenlabsKeys}
+            voices={voices}
             queueTasks={queueTasks}
             modelSettings={modelSettings}
             onAddGeminiKey={handleAddGeminiKey}
@@ -723,6 +770,9 @@ export default function App() {
             onAddElevenLabsKeysBulk={handleAddElevenLabsKeysBulk}
             onToggleElevenLabsKey={handleToggleElevenLabsKey}
             onDeleteElevenLabsKey={handleDeleteElevenLabsKey}
+            onAddVoice={handleAddVoice}
+            onToggleVoice={handleToggleVoice}
+            onDeleteVoice={handleDeleteVoice}
             onUpdateModelSettings={handleUpdateModelSettings}
             onClearQueueLogs={handleClearQueueLogs}
           />
