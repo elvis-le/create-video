@@ -59,6 +59,7 @@ export interface Project {
   isArchived: boolean;
   imageSeed?: number;
   voiceId?: string;
+  includeDialogue?: boolean;
 }
 
 export interface ElevenLabsKey {

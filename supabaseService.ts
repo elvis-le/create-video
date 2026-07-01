@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS projects_supabase (
   image_references JSONB DEFAULT '[]'::jsonb,
   image_seed INT,
   voice_id VARCHAR(100) DEFAULT 'EXAVITQu4vr4xnSDxMaL',
+  include_dialogue BOOLEAN DEFAULT FALSE,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -241,7 +242,8 @@ function mapRowToProject(row: any): any {
     scenes: row.scenes || [],
     isArchived: !!row.is_archived,
     imageSeed: row.image_seed,
-    voiceId: row.voice_id || "EXAVITQu4vr4xnSDxMaL"
+    voiceId: row.voice_id || "EXAVITQu4vr4xnSDxMaL",
+    includeDialogue: !!row.include_dialogue
   };
 }
 
@@ -327,7 +329,8 @@ export async function dbCreateProject(projData: any): Promise<any> {
       is_archived: !!projData.isArchived,
       image_references: projData.imageReferences || [],
       image_seed: projData.imageSeed || null,
-      voice_id: projData.voiceId || "EXAVITQu4vr4xnSDxMaL"
+      voice_id: projData.voiceId || "EXAVITQu4vr4xnSDxMaL",
+      include_dialogue: !!projData.includeDialogue
     };
 
     // Insert project
@@ -379,6 +382,7 @@ export async function dbUpdateProject(id: string, projData: Partial<any>): Promi
     if (projData.imageReferences !== undefined) updatePayload.image_references = projData.imageReferences;
     if (projData.imageSeed !== undefined) updatePayload.image_seed = projData.imageSeed;
     if (projData.voiceId !== undefined) updatePayload.voice_id = projData.voiceId;
+    if (projData.includeDialogue !== undefined) updatePayload.include_dialogue = !!projData.includeDialogue;
     
     updatePayload.updated_at = new Date().toISOString();
 

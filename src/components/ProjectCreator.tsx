@@ -1,6 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Sparkles, HelpCircle, Upload, Plus, Trash2, CheckCircle } from "lucide-react";
-import { SmartPreset, IndustryTemplate } from "../types";
+import { SmartPreset, IndustryTemplate, Project } from "../types";
 
 export const goalOptions = [
   { value: "Tăng nhận diện thương hiệu", labelVi: "Tăng nhận diện thương hiệu", labelEn: "Brand Awareness" },
@@ -19,6 +19,9 @@ export const toneOptions = [
 ];
 
 export const styleOptions = [
+  { value: "photorealistic", labelVi: "Ảnh thực tế thương mại (Photorealistic)", labelEn: "Photorealistic Commercial Style" },
+  { value: "3d-pixar", labelVi: "Hoạt hình 3D Pixar (3D Pixar Style)", labelEn: "3D Pixar Animation Style" },
+  { value: "2d-anime", labelVi: "Hoạt hình 2D Anime (2D Anime Style)", labelEn: "2D Anime Style" },
   { value: "Hiện đại & Tốc độ nhanh", labelVi: "Hiện đại & Tốc độ nhanh", labelEn: "Modern & Fast-paced" },
   { value: "Tối giản (Minimalist)", labelVi: "Tối giản (Minimalist)", labelEn: "Minimalist" },
   { value: "Đậm chất điện ảnh (Cinematic)", labelVi: "Đậm chất điện ảnh (Cinematic)", labelEn: "Cinematic" },
@@ -66,10 +69,13 @@ interface Props {
   industries: IndustryTemplate[];
   presets: SmartPreset[];
   onCreateProject: (projectData: any) => Promise<void>;
+  onUpdateProject?: (id: string, projectData: any) => Promise<void>;
+  project?: Project | null;
+  onResetProject?: () => void;
   isLoading: boolean;
 }
 
-export default function ProjectCreator({ lang, industries, presets, onCreateProject, isLoading }: Props) {
+export default function ProjectCreator({ lang, industries, presets, onCreateProject, onUpdateProject, project, onResetProject, isLoading }: Props) {
   const [name, setName] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState("ind-1");
   const [contentType, setContentType] = useState("TikTok Video Ad (9:16)");
@@ -84,12 +90,55 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
   const [expertRole, setExpertRole] = useState("Chuyên gia Marketing");
   const [cta, setCta] = useState("Mua ngay");
   const [voiceId, setVoiceId] = useState("EXAVITQu4vr4xnSDxMaL");
+  const [includeDialogue, setIncludeDialogue] = useState(false);
   const [images, setImages] = useState<string[]>([
     "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300&auto=format&fit=crop&q=60"
   ]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (project) {
+      setName(project.name || "");
+      setSelectedIndustry(project.industryId || "ind-1");
+      setContentType(project.contentType || "TikTok Video Ad (9:16)");
+      setProductName(project.productName || "");
+      setProductCategory(project.productCategory || "Video Quảng cáo ngắn (TikTok/Reels/Shorts)");
+      setProductInfo(project.productInfo || "");
+      setAiLanguage(project.aiLanguage || "vi");
+      setTargetWordCount(project.targetWordCount || "300 - 500 từ");
+      setGoal(project.goal || "Tăng nhận diện thương hiệu");
+      setTone(project.tone || "Chuyên nghiệp & Gãy gọn");
+      setStyle(project.style || "Hiện đại & Tốc độ nhanh");
+      setExpertRole(project.aiExpertRole || "Chuyên gia Marketing");
+      setCta(project.cta || "Mua ngay");
+      setVoiceId(project.voiceId || "EXAVITQu4vr4xnSDxMaL");
+      setIncludeDialogue(!!project.includeDialogue);
+      setImages(project.imageReferences || [
+        "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300&auto=format&fit=crop&q=60"
+      ]);
+    } else {
+      setName("");
+      setSelectedIndustry("ind-1");
+      setContentType("TikTok Video Ad (9:16)");
+      setProductName("");
+      setProductCategory("Video Quảng cáo ngắn (TikTok/Reels/Shorts)");
+      setProductInfo("");
+      setAiLanguage("vi");
+      setTargetWordCount("300 - 500 từ");
+      setGoal("Tăng nhận diện thương hiệu");
+      setTone("Chuyên nghiệp & Gãy gọn");
+      setStyle("Hiện đại & Tốc độ nhanh");
+      setExpertRole("Chuyên gia Marketing");
+      setCta("Mua ngay");
+      setVoiceId("EXAVITQu4vr4xnSDxMaL");
+      setIncludeDialogue(false);
+      setImages([
+        "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300&auto=format&fit=crop&q=60"
+      ]);
+    }
+  }, [project]);
 
   const applyPreset = (preset: SmartPreset) => {
     if (lang === "vi") {
@@ -175,7 +224,7 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
       return;
     }
 
-    onCreateProject({
+    const payload = {
       name,
       industryId: selectedIndustry,
       contentType,
@@ -190,8 +239,15 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
       cta,
       targetWordCount: targetWordCount || "300 - 500",
       imageReferences: images,
-      voiceId
-    });
+      voiceId,
+      includeDialogue
+    };
+
+    if (project && project.id && onUpdateProject) {
+      onUpdateProject(project.id, payload);
+    } else {
+      onCreateProject(payload);
+    }
   };
 
   return (
@@ -200,11 +256,26 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
         <div className="p-2.5 rounded-lg bg-[#34b1b3]/10 text-[#34b1b3] shadow-[0_0_12px_rgba(52,177,179,0.15)]">
           <Sparkles className="w-6 h-6 animate-pulse" />
         </div>
-        <div>
-          <h2 className="text-xl font-bold text-white font-display">
-            {lang === "vi" ? "Thiết Kế Chiến Dịch Dự Án Mới" : "Design New Campaign Project"}
-          </h2>
-          <p className="text-xs text-slate-400">
+        <div className="flex-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h2 className="text-xl font-bold text-white font-display">
+              {project ? (
+                lang === "vi" ? `Chỉnh Sửa Chiến Dịch: ${project.name}` : `Edit Campaign: ${project.name}`
+              ) : (
+                lang === "vi" ? "Thiết Kế Chiến Dịch Dự Án Mới" : "Design New Campaign Project"
+              )}
+            </h2>
+            {project && onResetProject && (
+              <button
+                type="button"
+                onClick={onResetProject}
+                className="text-xs font-bold bg-[#34b1b3]/20 hover:bg-[#34b1b3]/30 border border-[#34b1b3]/30 hover:border-[#34b1b3]/60 text-[#34b1b3] rounded-lg px-3 py-1.5 transition-all cursor-pointer self-start sm:self-auto"
+              >
+                {lang === "vi" ? "+ Tạo Dự Án Mới" : "+ Create New Project"}
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-slate-400 mt-1">
             {lang === "vi" 
               ? "Cung cấp định hướng thương hiệu, hình ảnh mồi, AI sẽ đảm nhận viết kịch bản." 
               : "Feed brand parameters and image reference, let AI orchestrate the master script."}
@@ -519,6 +590,32 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
           </div>
         </div>
 
+        {/* Google Labs Integration Switch */}
+        <div className="bg-[#34b1b3]/5 border border-[#34b1b3]/20 rounded-xl p-4 flex items-center justify-between gap-4">
+          <div className="flex flex-col">
+            <span className="flex items-center gap-1.5 text-xs font-bold text-white uppercase tracking-wider font-mono">
+              <span className="inline-flex items-center justify-center bg-gradient-to-r from-teal-500 to-[#34b1b3] text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase font-sans tracking-wide">
+                Google Labs
+              </span>
+              {lang === "vi" ? "Chế độ Google Labs (Tích hợp lời thoại vào Video Prompt)" : "Google Labs Mode (Integrate speech into Video Prompt)"}
+            </span>
+            <span className="text-[11px] text-slate-400 mt-1">
+              {lang === "vi" 
+                ? "Tự động nhúng trực tiếp câu thoại (lip-sync) tiếng Việt vào videoPrompt để hỗ trợ tối ưu các mô hình AI tạo hình người nói." 
+                : "Automatically embed spoken dialogue captions into videoPrompt for advanced lip-sync video generators."}
+            </span>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={includeDialogue}
+              onChange={(e) => setIncludeDialogue(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[20px] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#34b1b3]"></div>
+          </label>
+        </div>
+
         {/* Image Reference System uploading mockup 1-5 files */}
         <div id="image-reference-system-container" className="border border-dashed border-white/20 rounded-xl p-5 bg-black/20">
           {/* Hidden HTML input for actual file uploading */}
@@ -647,7 +744,12 @@ export default function ProjectCreator({ lang, industries, presets, onCreateProj
             ) : (
               <>
                 <CheckCircle className="w-4 h-4" />
-                <span>{lang === "vi" ? "Tạo Kịch Bản Bằng AI" : "Generate Script via AI Queue"}</span>
+                <span>
+                  {project 
+                    ? (lang === "vi" ? "Lưu Chỉnh Sửa & Cập Nhật" : "Save Changes & Update")
+                    : (lang === "vi" ? "Tạo Kịch Bản Bằng AI" : "Generate Script via AI Queue")
+                  }
+                </span>
               </>
             )}
           </button>

@@ -152,6 +152,25 @@ export default function App() {
     }
   };
 
+  const handleUpdateProject = async (id: string, pData: any) => {
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pData)
+      });
+      const updatedProj: Project = await res.json();
+      setProjects(projects.map(p => p.id === id ? updatedProj : p));
+      setSelectedProjectId(updatedProj.id);
+      
+      // Auto trigger script task with updated details
+      handleTriggerTask(updatedProj.id, "Script");
+      setActiveTab("script");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleTriggerTask = async (projId: string, type: "Script" | "Scenes" | "ImageGen" | "VideoGen" | "VoiceGen") => {
     try {
       const res = await fetch(`/api/projects/${projId}/generate/${type}`, {
@@ -472,7 +491,7 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveTab("create")}
+          onClick={() => { setSelectedProjectId(null); setActiveTab("create"); }}
           className={`px-4 py-2.5 text-xs font-bold rounded-lg transition-all border flex items-center gap-1.5 cursor-pointer shrink-0 ${activeTab === "create" ? "bg-[#34b1b3]/20 text-white border-[#34b1b3]/30 shadow-[0_0_12px_rgba(52,177,179,0.15)]" : "border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200"}`}
         >
           <FolderPlus className="w-4 h-4" />
@@ -622,7 +641,10 @@ export default function App() {
             onCloneProject={handleCloneProject}
             onArchiveProject={handleArchiveProject}
             onDeleteProject={handleDeleteProject}
-            onNavigateToCreate={() => setActiveTab("create")}
+            onNavigateToCreate={() => {
+              setSelectedProjectId(null);
+              setActiveTab("create");
+            }}
           />
         )}
 
@@ -632,6 +654,9 @@ export default function App() {
             industries={industries}
             presets={presets}
             onCreateProject={handleCreateProject}
+            onUpdateProject={handleUpdateProject}
+            project={activeProject}
+            onResetProject={() => setSelectedProjectId(null)}
             isLoading={isTaskRunning}
           />
         )}
