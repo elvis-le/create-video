@@ -824,6 +824,11 @@ ${lightingStyleRule}
    - BẮT ĐẦU \`videoPrompt\` bằng các thuật ngữ Đạo diễn góc máy (Cinematography): "Slow pan right", "Smooth push in", "Close-up tracking shot", "Cinematic macro shot".
    - TẬP TRUNG vào Cử động (Motion): Miêu tả sự chuyển động mượt mà của nhân vật hoặc sản phẩm (Ví dụ: "The hand smoothly glides the metallic mop across the floor", "The cyan plastic wringer effortlessly squeezes the coral pad").
    - NGHIÊM CẤM các hành động quá phức tạp, biến đổi vật lý mạnh, hoặc chuyển cảnh (No morphing, no sudden cuts, fluid motion only).
+5. QUY TẮC NHỊP ĐỘ (8-SECOND PACING RULE): Mọi videoPrompt phải được thiết kế để lấp đầy tự nhiên một đoạn video dài 8 đến 10 giây.
+   - CHỈ ĐƯỢC PHÉP mô tả 1 hành động duy nhất, kéo dài liên tục (Ví dụ: "Continuously sweeping the floor"). Tự động loại bỏ các chuỗi hành động phức tạp.
+   - NGHIÊM CẤM sử dụng các từ chỉ sự nối tiếp thời gian (and then, suddenly, after that). 
+   - BẮT BUỘC sử dụng các từ khóa kéo dài thời gian: "Cinematic slow motion", "slow continuous tracking shot", "fluid lingering motion".
+   - (Nếu là phân cảnh có Lời thoại/Labs Mode): Đảm bảo hành động của cơ thể và khuôn mặt là những cử động chậm, tĩnh lặng nhẹ nhàng (Subtle micro-expressions) để dồn sự tập trung vào việc khớp khẩu hình 8 giây.
 ${project.includeDialogue ? `7. QUY TẮC ĐẶC BIỆT (LIP-SYNC MODE): Người dùng muốn mang videoPrompt này đi tạo video có người nói. BẮT BUỘC đính kèm trực tiếp câu thoại của nhân vật vào cuối videoPrompt theo cú pháp: [Cảnh hành động...], the character looks directly at the camera and clearly speaks: 'Nội dung tiếng Việt của câu thoại'.` : ""}
 
 [Cấu Trúc Bóc Tách]
